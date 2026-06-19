@@ -33,11 +33,6 @@ Whisky 为 Wine 提供了一个干净易用的图形化封装，采用原生 Swi
 - CPU：Apple Silicon（M 系列芯片）
 - 操作系统：macOS Sonoma 14.0 或更高版本
 
-## Homebrew
-
-Whisky 已入驻 Homebrew！使用以下命令安装：
-`brew install --cask whisky`
-
 ## 我的游戏无法运行！
 
 部分游戏需要特殊步骤才能运行。请查阅 [wiki](https://github.com/IsaacMarovitz/Whisky/wiki/Game-Support)。
@@ -112,11 +107,6 @@ Translated on [Crowdin](https://crowdin.com/project/whisky).
 ## System Requirements
 - CPU: Apple Silicon (M-series chips)
 - OS: macOS Sonoma 14.0 or later
-
-## Homebrew
-
-Whisky is on homebrew! Install with
-`brew install --cask whisky`.
 
 ## My game isn't working!
 
