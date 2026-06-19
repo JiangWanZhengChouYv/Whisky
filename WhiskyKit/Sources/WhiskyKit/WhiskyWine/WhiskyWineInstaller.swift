@@ -20,6 +20,10 @@ import Foundation
 import SemanticVersion
 
 public class WhiskyWineInstaller {
+    /// Base URL for WhiskyWine files (hosted on GitHub Release assets)
+    /// Replaces the original upstream server which is no longer active
+    public static let whiskyWineBaseURL = "https://github.com/JiangWanZhengChouYv/Whisky/releases/download/whiskywine-v1/"
+
     /// The Whisky application folder
     public static let applicationFolder = FileManager.default.urls(
         for: .applicationSupportDirectory, in: .userDomainMask
@@ -61,7 +65,7 @@ public class WhiskyWineInstaller {
     }
 
     public static func shouldUpdateWhiskyWine() async -> (Bool, SemanticVersion) {
-        let versionPlistURL = "https://data.getwhisky.app/Wine/WhiskyWineVersion.plist"
+        let versionPlistURL = whiskyWineBaseURL + "WhiskyWineVersion.plist"
         let localVersion = whiskyWineVersion()
 
         var remoteVersion: SemanticVersion?

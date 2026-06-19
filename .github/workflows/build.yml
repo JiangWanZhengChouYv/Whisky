@@ -1,0 +1,28 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build WhiskyKit with SwiftPM
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build WhiskyKit
+        run: cd WhiskyKit && swift build --configuration release
+
+      - name: Verify no stale URLs remain
+        run: |
+          STALE_HOST="data.getwhisky.app"
+          if grep -r "${STALE_HOST}" WhiskyKit Whisky --include="*.swift" --include="*.plist"; then
+            echo "Error: found stale ${STALE_HOST} URLs"
+            exit 1
+          else
+            echo "OK: no stale ${STALE_HOST} URLs found"
+          fi
