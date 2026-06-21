@@ -73,6 +73,22 @@ Whisky 为 Wine 提供了一个干净易用的图形化封装，采用原生 Swi
 
 ---
 
+## 关于此 Fork
+
+此 Fork 由 [JiangWanZhengChouYv](https://github.com/JiangWanZhengChouYv) 维护。由于原项目托管服务 `data.getwhisky.app` 已下线，WhiskyWine 二进制文件已迁移至 [GitHub Release (whiskywine-v1)](https://github.com/JiangWanZhengChouYv/Whisky/releases/tag/whiskywine-v1)。
+
+WhiskyWine 来自 [Wine Stable.app](https://www.winehq.org/) (Wine 11.0.1)，采用与上游相同的二进制构建。
+
+---
+
+## About This Fork
+
+This fork is maintained by [JiangWanZhengChouYv](https://github.com/JiangWanZhengChouYv). Since the original project's hosting service `data.getwhisky.app` has been taken offline, WhiskyWine binaries have been migrated to [GitHub Release (whiskywine-v1)](https://github.com/JiangWanZhengChouYv/Whisky/releases/tag/whiskywine-v1).
+
+WhiskyWine is sourced from [Wine Stable.app](https://www.winehq.org/) (Wine 11.0.1), built using the same binaries as upstream.
+
+---
+
 <div align="center">
 
 # Whisky 🥃
