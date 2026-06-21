@@ -53,55 +53,61 @@ public class WhiskyWineInstaller {
             try Tar.untar(tarBall: from, toURL: applicationFolder)
             try FileManager.default.removeItem(at: from)
 
-            // 如果 tar 没有 Libraries/ 前缀，将文件移动到正确位置
-            let fileManager = FileManager.default
-            let expectedWineBin = libraryFolder
-                .appendingPathComponent("Wine")
-                .appendingPathComponent("bin")
-                .appendingPathComponent("wine64")
-            if !fileManager.fileExists(atPath: expectedWineBin.path) {
-                // 检查 applicationFolder 下是否直接有 Wine 目录（tar 没有 Libraries/ 前缀）
-                let flatWineDir = applicationFolder.appendingPathComponent("Wine")
-                if fileManager.fileExists(atPath: flatWineDir.path) {
-                    // 创建 Libraries 目录
-                    try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
-                    // 枚举 applicationFolder 下的所有内容，除了已有的 Libraries
-                    let contents = try fileManager.contentsOfDirectory(atPath: applicationFolder.path)
-                    for item in contents {
-                        if item == "Libraries" { continue }
-                        let srcURL = applicationFolder.appendingPathComponent(item)
-                        let dstURL = libraryFolder.appendingPathComponent(item)
-                        try fileManager.moveItem(at: srcURL, to: dstURL)
-                    }
-                }
-            }
-
-            // 给所有二进制文件设置可执行权限
-            if fileManager.fileExists(atPath: binFolder.path) {
-                let binContents = try fileManager.contentsOfDirectory(atPath: binFolder.path)
-                for binFile in binContents {
-                    let binPath = binFolder.appendingPathComponent(binFile).path
-                    try fileManager.setAttributes(
-                        [.posixPermissions: NSNumber(value: 0o755)],
-                        ofItemAtPath: binPath
-                    )
-                }
-            }
-
-            // 如果 WhiskyWineVersion.plist 不存在，生成一个默认版本 1.0.0
-            let versionPlistURL = libraryFolder
-                .appendingPathComponent("WhiskyWineVersion")
-                .appendingPathExtension("plist")
-            if !fileManager.fileExists(atPath: versionPlistURL.path) {
-                try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
-                let encoder = PropertyListEncoder()
-                encoder.outputFormat = .xml
-                let versionInfo = WhiskyWineVersion()
-                let versionData = try encoder.encode(versionInfo)
-                try versionData.write(to: versionPlistURL)
-            }
+            try normalizeExtractedContents()
+            try makeBinariesExecutable()
+            try ensureVersionPlist()
         } catch {
             print("Failed to install WhiskyWine: \(error)")
+        }
+    }
+
+    private static func normalizeExtractedContents() throws {
+        let fileManager = FileManager.default
+        let expectedWineBin = libraryFolder
+            .appendingPathComponent("Wine")
+            .appendingPathComponent("bin")
+            .appendingPathComponent("wine64")
+        if !fileManager.fileExists(atPath: expectedWineBin.path) {
+            let flatWineDir = applicationFolder.appendingPathComponent("Wine")
+            if fileManager.fileExists(atPath: flatWineDir.path) {
+                try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
+                let contents = try fileManager.contentsOfDirectory(atPath: applicationFolder.path)
+                for item in contents {
+                    if item == "Libraries" { continue }
+                    let srcURL = applicationFolder.appendingPathComponent(item)
+                    let dstURL = libraryFolder.appendingPathComponent(item)
+                    try fileManager.moveItem(at: srcURL, to: dstURL)
+                }
+            }
+        }
+    }
+
+    private static func makeBinariesExecutable() throws {
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: binFolder.path) {
+            let binContents = try fileManager.contentsOfDirectory(atPath: binFolder.path)
+            for binFile in binContents {
+                let binPath = binFolder.appendingPathComponent(binFile).path
+                try fileManager.setAttributes(
+                    [.posixPermissions: NSNumber(value: 0o755)],
+                    ofItemAtPath: binPath
+                )
+            }
+        }
+    }
+
+    private static func ensureVersionPlist() throws {
+        let fileManager = FileManager.default
+        let versionPlistURL = libraryFolder
+            .appendingPathComponent("WhiskyWineVersion")
+            .appendingPathExtension("plist")
+        if !fileManager.fileExists(atPath: versionPlistURL.path) {
+            try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
+            let encoder = PropertyListEncoder()
+            encoder.outputFormat = .xml
+            let versionInfo = WhiskyWineVersion()
+            let versionData = try encoder.encode(versionInfo)
+            try versionData.write(to: versionPlistURL)
         }
     }
 
