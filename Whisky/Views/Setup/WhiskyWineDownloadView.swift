@@ -163,10 +163,10 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
 
     // Path to save resume data between retries / app restarts
     private var resumeDataURL: URL {
-        let fm = FileManager.default
-        if let cacheDir = fm.urls(for: .cachesDirectory, in: .userDomainMask).first {
+        let fileManager = FileManager.default
+        if let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
             let whiskyCacheDir = cacheDir.appendingPathComponent("Whisky", isDirectory: true)
-            try? fm.createDirectory(at: whiskyCacheDir, withIntermediateDirectories: true)
+            try? fileManager.createDirectory(at: whiskyCacheDir, withIntermediateDirectories: true)
             return whiskyCacheDir.appendingPathComponent("whiskywine.resumeData")
         }
         return URL(fileURLWithPath: NSTemporaryDirectory())
