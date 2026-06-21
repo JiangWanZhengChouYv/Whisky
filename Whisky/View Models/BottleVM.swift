@@ -54,21 +54,27 @@ final class BottleVM: ObservableObject, @unchecked Sendable {
 
                 bottle.settings.windowsVersion = winVersion
                 bottle.settings.name = bottleName
+                // 先初始化 Wine prefix，再设置 Windows 版本
+                try await Wine.wineboot(bottle: bottle)
                 try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
                 let wineVer = try await Wine.wineVersion()
                 bottle.settings.wineVersion = SemanticVersion(wineVer) ?? SemanticVersion(0, 0, 0)
-                // Add record
+                // 成功后持久化记录
                 await MainActor.run {
+                    bottle.inFlight = false
                     self.bottlesList.paths.append(newBottleDir)
                     self.loadBottles()
                 }
             } catch {
+                let nsError = error as NSError
                 print("Failed to create new bottle: \(error)")
+                print("Detailed error: domain=\(nsError.domain), code=\(nsError.code), userInfo=\(nsError.userInfo)")
+                // 即使失败也保留 bottle（不删除），持久化路径，方便用户排查
                 if let bottle = bottleId {
                     await MainActor.run {
-                        if let index = self.bottles.firstIndex(of: bottle) {
-                            self.bottles.remove(at: index)
-                        }
+                        bottle.inFlight = false
+                        self.bottlesList.paths.append(newBottleDir)
+                        self.loadBottles()
                     }
                 }
             }

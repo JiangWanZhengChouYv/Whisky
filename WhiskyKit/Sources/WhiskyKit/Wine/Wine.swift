@@ -391,6 +391,10 @@ extension Wine {
         return try await Wine.runWine(["winecfg"], bottle: bottle)
     }
 
+    public static func wineboot(bottle: Bottle) async throws {
+        try await runWine(["wineboot", "-i"], bottle: bottle)
+    }
+
     @discardableResult
     public static func changeWinVersion(bottle: Bottle, win: WinVersion) async throws -> String {
         return try await Wine.runWine(["winecfg", "-v", win.rawValue], bottle: bottle)

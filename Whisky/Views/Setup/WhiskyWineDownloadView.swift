@@ -183,18 +183,13 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
     func start() {
         let config = URLSessionConfiguration.default
 
-        // CRITICAL: Disable system proxy to avoid 503 / -1 bytes / immediate disconnect.
-        // Users behind VPN/proxy (127.0.0.1:7890 etc.) must download directly.
-        config.connectionProxyDictionary = [:]
-
         // Timeouts — large file (123 MB) needs generous limits
-        config.timeoutIntervalForRequest = 60       // Per-request timeout
-        config.timeoutIntervalForResource = 3600   // Total resource timeout: 1 hour
+        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForResource = 3600
 
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.isDiscretionary = false
         config.sessionSendsLaunchEvents = false
-        // Enable HTTP/2 for better redirect handling
         config.httpMaximumConnectionsPerHost = 4
 
         self.session = URLSession(configuration: config, delegate: self, delegateQueue: .main)
