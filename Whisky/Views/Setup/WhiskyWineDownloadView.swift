@@ -29,7 +29,6 @@ struct WhiskyWineDownloadView: View {
     @Binding var tarLocation: URL
     @Binding var path: [SetupStage]
 
-    // Download manager (delegate-based, with resume support)
     @State private var downloadManager: WhiskyWineDownloadManager?
 
     var body: some View {
@@ -56,9 +55,10 @@ struct WhiskyWineDownloadView: View {
                                         formatBytes(bytes: completedBytes),
                                         formatBytes(bytes: totalBytes)))
                             + Text(String(" "))
-                            + (shouldShowEstimate() ?
-                               Text(String(format: String(localized: "setup.whiskywine.eta"),
-                                           formatRemainingTime(remainingBytes: totalBytes - completedBytes)))
+                            + (shouldShowEstimate()
+                               ? Text(String(format: String(localized: "setup.whiskywine.eta"),
+                                           formatRemainingTime(
+                                               remainingBytes: max(0, totalBytes - completedBytes))))
                                : Text(String()))
                             Spacer()
                         }
@@ -89,10 +89,10 @@ struct WhiskyWineDownloadView: View {
 
         let manager = WhiskyWineDownloadManager(
             downloadURL: url,
-            totalBytesHandler: { total in
+            totalBytesHandler: { [self] total in
                 if totalBytes == 0 { totalBytes = total }
             },
-            progressHandler: { completed, total in
+            progressHandler: { [self] completed, total in
                 completedBytes = completed
                 if total > 0 {
                     totalBytes = total
@@ -105,11 +105,11 @@ struct WhiskyWineDownloadView: View {
                     }
                 }
             },
-            completionHandler: { resultURL in
+            completionHandler: { [self] resultURL in
                 tarLocation = resultURL
-                proceed()
+                path.append(.whiskyWineInstall)
             },
-            errorHandler: { error in
+            errorHandler: { [self] error in
                 errorMessage = "Download failed: \(error.localizedDescription)"
             }
         )
@@ -117,38 +117,31 @@ struct WhiskyWineDownloadView: View {
         manager.start()
     }
 
-    func formatBytes(bytes: Int64) -> String {
+    private func formatBytes(bytes: Int64) -> String {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
         formatter.zeroPadsFractionDigits = true
         return formatter.string(fromByteCount: bytes)
     }
 
-    func shouldShowEstimate() -> Bool {
+    private func shouldShowEstimate() -> Bool {
         let elapsedTime = Date().timeIntervalSince(startTime ?? Date())
         return Int(elapsedTime.rounded()) > 5 && completedBytes != 0
     }
 
-    func formatRemainingTime(remainingBytes: Int64) -> String {
+    private func formatRemainingTime(remainingBytes: Int64) -> String {
         let remainingTimeInSeconds = Double(remainingBytes) / downloadSpeed
-
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute, .second]
         formatter.unitsStyle = .full
-        if shouldShowEstimate() {
-            return formatter.string(from: TimeInterval(remainingTimeInSeconds)) ?? ""
-        } else {
-            return ""
-        }
-    }
-
-    func proceed() {
-        path.append(.whiskyWineInstall)
+        return formatter.string(from: TimeInterval(remainingTimeInSeconds)) ?? ""
     }
 }
 
-// MARK: - Download Manager (with resume support + auto-reconnect)
+// MARK: - WhiskyWineDownloadManager
 
+/// Downloads WhiskyWine with resume support, auto-retry, and proxy disabled.
+/// Bypasses system proxy (127.0.0.1:7890 etc.) that can cause 503 / -1 bytes issues.
 final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
     private let downloadURL: URL
     private let totalBytesHandler: (Int64) -> Void
@@ -161,7 +154,6 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
     private var retryCount = 0
     private let maxRetries = 3
 
-    // Path to save resume data between retries / app restarts
     private var resumeDataURL: URL {
         let fileManager = FileManager.default
         if let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
@@ -186,24 +178,34 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
         self.completionHandler = completionHandler
         self.errorHandler = errorHandler
         super.init()
-
-        // Use default session (not ephemeral) so resume data works correctly
-        let config = URLSessionConfiguration.default
-        config.requestCachePolicy = .reloadIgnoringLocalCacheData
-        config.isDiscretionary = false
-        // Allow the OS to keep downloading if app is briefly backgrounded
-        config.sessionSendsLaunchEvents = false
-        self.session = URLSession(configuration: config, delegate: self, delegateQueue: .main)
     }
 
     func start() {
-        // Check if we have resume data from a previous download
+        let config = URLSessionConfiguration.default
+
+        // CRITICAL: Disable system proxy to avoid 503 / -1 bytes / immediate disconnect.
+        // Users behind VPN/proxy (127.0.0.1:7890 etc.) must download directly.
+        config.connectionProxyDictionary = [:]
+
+        // Timeouts — large file (123 MB) needs generous limits
+        config.timeoutIntervalForRequest = 60       // Per-request timeout
+        config.timeoutIntervalForResource = 3600   // Total resource timeout: 1 hour
+
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.isDiscretionary = false
+        config.sessionSendsLaunchEvents = false
+        // Enable HTTP/2 for better redirect handling
+        config.httpMaximumConnectionsPerHost = 4
+
+        self.session = URLSession(configuration: config, delegate: self, delegateQueue: .main)
+
+        // Check if we have resume data from a previous attempt
         if FileManager.default.fileExists(atPath: resumeDataURL.path),
            let resumeData = try? Data(contentsOf: resumeDataURL) {
-            print("[WhiskyWineDownload] Resuming previous download from resume data")
+            print("[WhiskyWineDownload] Resuming from saved resume data")
             downloadTask = session.downloadTask(withResumeData: resumeData)
         } else {
-            print("[WhiskyWineDownload] Starting new download: \(downloadURL)")
+            print("[WhiskyWineDownload] Starting fresh download: \(downloadURL)")
             downloadTask = session.downloadTask(with: downloadURL)
         }
         downloadTask?.resume()
@@ -216,9 +218,9 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
         downloadTask: URLSessionDownloadTask,
         didFinishDownloadingTo location: URL
     ) {
-        // Download complete — clean up resume data
+        // Clean up resume data on success
         try? FileManager.default.removeItem(at: resumeDataURL)
-        print("[WhiskyWineDownload] Download complete: \(location)")
+        print("[WhiskyWineDownload] Download complete")
         completionHandler(location)
     }
 
@@ -229,8 +231,8 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
         totalBytesWritten: Int64,
         totalBytesExpectedToWrite: Int64
     ) {
-        // totalBytesExpectedToWrite can be -1 when using chunked transfer
-        // or when Content-Length is missing
+        // GitHub CDN may return -1 for totalBytesExpectedToWrite (chunked encoding).
+        // We always report what the delegate tells us, even if it's -1.
         if totalBytesExpectedToWrite > 0 {
             totalBytesHandler(totalBytesExpectedToWrite)
         }
@@ -243,14 +245,14 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
         didResumeAtOffset fileOffset: Int64,
         expectedTotalBytes: Int64
     ) {
-        print("[WhiskyWineDownload] Resumed at offset \(fileOffset)/\(expectedTotalBytes)")
+        print("[WhiskyWineDownload] Resumed at \(fileOffset)/\(expectedTotalBytes)")
         if expectedTotalBytes > 0 {
             totalBytesHandler(expectedTotalBytes)
         }
         progressHandler(fileOffset, expectedTotalBytes)
     }
 
-    // MARK: - URLSessionTaskDelegate (failure handler)
+    // MARK: - URLSessionTaskDelegate
 
     func urlSession(
         _ session: URLSession,
@@ -259,38 +261,28 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
     ) {
         guard let error = error as NSError? else { return }
 
-        // For download tasks, userInfo may contain resume data via NSURLSessionDownloadTaskResumeData
-        let resumeData = error.userInfo[NSURLSessionDownloadTaskResumeData] as? Data
+        print("[WhiskyWineDownload] Error: \(error.code) \(error.localizedDescription)")
 
-        // Also save any valid resumeData we can get
-        if let resumeData = resumeData {
-            try? resumeData.write(to: resumeDataURL, options: .atomic)
-            print("[WhiskyWineDownload] Saved resume data: \(resumeData.count) bytes")
+        // Extract resume data from the error
+        let resumeData = error.userInfo[NSURLSessionDownloadTaskResumeData] as? Data
+        if let data = resumeData {
+            try? data.write(to: resumeDataURL, options: .atomic)
+            print("[WhiskyWineDownload] Saved resume data: \(data.count) bytes")
         }
 
-        // Auto-retry logic
         if retryCount < maxRetries {
             retryCount += 1
-            print("[WhiskyWineDownload] Download failed: \(error.localizedDescription). " +
-                  "Retry \(retryCount)/\(maxRetries)")
-
-            // Short delay before retrying
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            print("[WhiskyWineDownload] Retry \(retryCount)/\(maxRetries) in 3 seconds...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
                 guard let self = self else { return }
-                // Try to resume with existing data, or fall back to fresh download
                 if let data = try? Data(contentsOf: self.resumeDataURL) {
-                    let task = self.session.downloadTask(withResumeData: data)
-                    self.downloadTask = task
-                    task.resume()
+                    self.downloadTask = self.session.downloadTask(withResumeData: data)
                 } else {
-                    let task = self.session.downloadTask(with: self.downloadURL)
-                    self.downloadTask = task
-                    task.resume()
+                    self.downloadTask = self.session.downloadTask(with: self.downloadURL)
                 }
+                self.downloadTask?.resume()
             }
         } else {
-            // Final failure — report back
-            print("[WhiskyWineDownload] All \(maxRetries) retries exhausted.")
             errorHandler(error)
         }
     }
