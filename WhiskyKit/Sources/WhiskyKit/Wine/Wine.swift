@@ -265,7 +265,6 @@ enum RegistryType: String {
     case qword = "REG_QWORD"
     case string = "REG_SZ"
 }
-
 extension Wine {
     public static let logsFolder = FileManager.default.urls(
         for: .libraryDirectory, in: .userDomainMask
@@ -390,7 +389,6 @@ extension Wine {
     public static func cfg(bottle: Bottle) async throws -> String {
         return try await Wine.runWine(["winecfg"], bottle: bottle)
     }
-
     public static func wineboot(bottle: Bottle) async throws {
         try await runWine(["wineboot", "-i"], bottle: bottle)
     }
