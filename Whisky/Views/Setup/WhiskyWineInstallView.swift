@@ -21,7 +21,7 @@ import WhiskyKit
 
 struct WhiskyWineInstallView: View {
     @State var installing: Bool = true
-    @State private var installError: String? = nil
+    @State private var installError: String?
     @Binding var tarLocation: URL
     @Binding var path: [SetupStage]
     @Binding var showSetup: Bool

@@ -42,18 +42,18 @@ public class WhiskyWineInstaller {
 
     public static func install(from: URL) -> Result<Void, Error> {
         do {
-            let fm = FileManager.default
-            if !fm.fileExists(atPath: applicationFolder.path) {
-                try fm.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
+            let fileManager = FileManager.default
+            if !fileManager.fileExists(atPath: applicationFolder.path) {
+                try fileManager.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
             } else {
                 // Recreate it
-                try fm.removeItem(at: applicationFolder)
-                try fm.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
+                try fileManager.removeItem(at: applicationFolder)
+                try fileManager.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
             }
 
             print("[WhiskyWine Install] Extracting tar to \(applicationFolder.path)")
             try Tar.untar(tarBall: from, toURL: applicationFolder)
-            try fm.removeItem(at: from)
+            try fileManager.removeItem(at: from)
 
             print("[WhiskyWine Install] Normalizing extracted contents...")
             try normalizeExtractedContents()
@@ -69,16 +69,16 @@ public class WhiskyWineInstaller {
             let wineBinPath = WhiskyWineInstaller.binFolder.appendingPathComponent("wine64")
             print("  - libraryFolder path: \(libraryFolder.path)")
             print("  - wineBinary path: \(wineBinPath.path)")
-            print("  - wineBinary exists: \(fm.fileExists(atPath: wineBinPath.path))")
+            print("  - wineBinary exists: \(fileManager.fileExists(atPath: wineBinPath.path))")
 
             let versionPlistURL = libraryFolder
                 .appendingPathComponent("WhiskyWineVersion")
                 .appendingPathExtension("plist")
             print("  - versionPlist path: \(versionPlistURL.path)")
-            print("  - versionPlist exists: \(fm.fileExists(atPath: versionPlistURL.path))")
+            print("  - versionPlist exists: \(fileManager.fileExists(atPath: versionPlistURL.path))")
             print("  - whiskyWineVersion result: \(String(describing: whiskyWineVersion()))")
 
-            if !fm.fileExists(atPath: wineBinPath.path) {
+            if !fileManager.fileExists(atPath: wineBinPath.path) {
                 let error = InstallationError.invalidInstallation(
                     "wineBinary not found at \(wineBinPath.path)"
                 )
