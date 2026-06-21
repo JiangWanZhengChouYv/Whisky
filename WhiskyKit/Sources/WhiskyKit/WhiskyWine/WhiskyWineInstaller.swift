@@ -40,24 +40,65 @@ public class WhiskyWineInstaller {
         return whiskyWineVersion() != nil
     }
 
-    public static func install(from: URL) {
+    public static func install(from: URL) -> Result<Void, Error> {
         do {
-            if !FileManager.default.fileExists(atPath: applicationFolder.path) {
-                try FileManager.default.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
+            let fm = FileManager.default
+            if !fm.fileExists(atPath: applicationFolder.path) {
+                try fm.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
             } else {
                 // Recreate it
-                try FileManager.default.removeItem(at: applicationFolder)
-                try FileManager.default.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
+                try fm.removeItem(at: applicationFolder)
+                try fm.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
             }
 
+            print("[WhiskyWine Install] Extracting tar to \(applicationFolder.path)")
             try Tar.untar(tarBall: from, toURL: applicationFolder)
-            try FileManager.default.removeItem(at: from)
+            try fm.removeItem(at: from)
 
+            print("[WhiskyWine Install] Normalizing extracted contents...")
             try normalizeExtractedContents()
+
+            print("[WhiskyWine Install] Setting executable permissions...")
             try makeBinariesExecutable()
+
+            print("[WhiskyWine Install] Ensuring version plist exists...")
             try ensureVersionPlist()
+
+            // Final validation
+            print("[WhiskyWine Install] Validating installation...")
+            let wineBinPath = WhiskyWineInstaller.binFolder.appendingPathComponent("wine64")
+            print("  - libraryFolder path: \(libraryFolder.path)")
+            print("  - wineBinary path: \(wineBinPath.path)")
+            print("  - wineBinary exists: \(fm.fileExists(atPath: wineBinPath.path))")
+
+            let versionPlistURL = libraryFolder
+                .appendingPathComponent("WhiskyWineVersion")
+                .appendingPathExtension("plist")
+            print("  - versionPlist path: \(versionPlistURL.path)")
+            print("  - versionPlist exists: \(fm.fileExists(atPath: versionPlistURL.path))")
+            print("  - whiskyWineVersion result: \(String(describing: whiskyWineVersion()))")
+
+            if !fm.fileExists(atPath: wineBinPath.path) {
+                let error = InstallationError.invalidInstallation(
+                    "wineBinary not found at \(wineBinPath.path)"
+                )
+                print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
+                return .failure(error)
+            }
+
+            if whiskyWineVersion() == nil {
+                let error = InstallationError.invalidInstallation(
+                    "WhiskyWineVersion.plist not found or invalid"
+                )
+                print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
+                return .failure(error)
+            }
+
+            print("[WhiskyWine Install] Installation successful!")
+            return .success(())
         } catch {
-            print("Failed to install WhiskyWine: \(error)")
+            print("[WhiskyWine Install] Installation failed: \(error)")
+            return .failure(error)
         }
     }
 
@@ -177,4 +218,18 @@ public class WhiskyWineInstaller {
 
 struct WhiskyWineVersion: Codable {
     var version: SemanticVersion = SemanticVersion(1, 0, 0)
+}
+
+public enum InstallationError: Error, LocalizedError {
+    case invalidInstallation(String)
+    case extractionFailed(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidInstallation(let reason):
+            return "Invalid installation: \(reason)"
+        case .extractionFailed(let reason):
+            return "Extraction failed: \(reason)"
+        }
+    }
 }

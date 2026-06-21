@@ -21,6 +21,7 @@ import WhiskyKit
 
 struct WhiskyWineInstallView: View {
     @State var installing: Bool = true
+    @State private var installError: String? = nil
     @Binding var tarLocation: URL
     @Binding var path: [SetupStage]
     @Binding var showSetup: Bool
@@ -39,7 +40,28 @@ struct WhiskyWineInstallView: View {
                     ProgressView()
                         .progressViewStyle(.circular)
                         .frame(width: 80)
-                } else {
+                } else if let errorMessage = installError {
+                    VStack(spacing: 12) {
+                        Image(systemName: "xmark.circle")
+                            .resizable()
+                            .frame(width: 80, height: 80)
+                            .foregroundStyle(.red)
+                        Text(errorMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        Button("button.retry") {
+                            installError = nil
+                            installing = true
+                            Task {
+                                let result = await WhiskyWineInstaller.install(from: tarLocation)
+                                await handleInstallResult(result)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                } else if installError == nil {
                     Image(systemName: "checkmark.circle")
                         .resizable()
                         .frame(width: 80, height: 80)
@@ -51,13 +73,9 @@ struct WhiskyWineInstallView: View {
         }
         .frame(width: 400, height: 200)
         .onAppear {
-            Task.detached {
-                await WhiskyWineInstaller.install(from: tarLocation)
-                await MainActor.run {
-                    installing = false
-                }
-                sleep(2)
-                await proceed()
+            Task {
+                let result = await WhiskyWineInstaller.install(from: tarLocation)
+                await handleInstallResult(result)
             }
         }
     }
@@ -65,5 +83,18 @@ struct WhiskyWineInstallView: View {
     @MainActor
     func proceed() {
         showSetup = false
+    }
+
+    @MainActor
+    private func handleInstallResult(_ result: Result<Void, Error>) {
+        switch result {
+        case .success:
+            installing = false
+            sleep(2)
+            proceed()
+        case .failure(let error):
+            installing = false
+            installError = error.localizedDescription
+        }
     }
 }
