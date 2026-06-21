@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build WhiskyKit with SwiftPM
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
