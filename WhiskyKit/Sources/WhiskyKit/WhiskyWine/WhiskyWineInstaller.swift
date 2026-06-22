@@ -53,7 +53,9 @@ public class WhiskyWineInstaller {
 
             print("[WhiskyWine Install] Extracting tar to \(applicationFolder.path)")
             try Tar.untar(tarBall: from, toURL: applicationFolder)
-            try fileManager.removeItem(at: from)
+            // Do NOT delete the tar file — it may be the cached download.
+            // The download manager caches to ~/Library/Application Support/Whisky/Downloads/.
+            // Deleting it would force a re-download on the next launch.
 
             print("[WhiskyWine Install] Normalizing extracted contents...")
             try normalizeExtractedContents()
@@ -108,19 +110,39 @@ public class WhiskyWineInstaller {
             .appendingPathComponent("Wine")
             .appendingPathComponent("bin")
             .appendingPathComponent("wine64")
-        if !fileManager.fileExists(atPath: expectedWineBin.path) {
-            let flatWineDir = applicationFolder.appendingPathComponent("Wine")
-            if fileManager.fileExists(atPath: flatWineDir.path) {
-                try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
-                let contents = try fileManager.contentsOfDirectory(atPath: applicationFolder.path)
-                for item in contents {
-                    if item == "Libraries" { continue }
-                    let srcURL = applicationFolder.appendingPathComponent(item)
-                    let dstURL = libraryFolder.appendingPathComponent(item)
-                    try fileManager.moveItem(at: srcURL, to: dstURL)
-                }
-            }
+
+        if fileManager.fileExists(atPath: expectedWineBin.path) {
+            print("[WhiskyWine Install] wine64 found at expected path: \(expectedWineBin.path)")
+            return
         }
+
+        print("[WhiskyWine Install] wine64 NOT found at \(expectedWineBin.path)")
+        print("[WhiskyWine Install] Scanning applicationFolder contents...")
+        if let contents = try? fileManager.contentsOfDirectory(atPath: applicationFolder.path) {
+            print("[WhiskyWine Install] applicationFolder contents: \(contents)")
+        }
+
+        let flatWineDir = applicationFolder.appendingPathComponent("Wine")
+        if fileManager.fileExists(atPath: flatWineDir.path) {
+            print("[WhiskyWine Install] Found flat Wine dir at applicationFolder, moving to libraryFolder")
+            try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
+            let contents = try fileManager.contentsOfDirectory(atPath: applicationFolder.path)
+            for item in contents {
+                if item == "Libraries" { continue }
+                let srcURL = applicationFolder.appendingPathComponent(item)
+                let dstURL = libraryFolder.appendingPathComponent(item)
+                try fileManager.moveItem(at: srcURL, to: dstURL)
+            }
+            return
+        }
+
+        let nestedWineDir = applicationFolder.appendingPathComponent("Libraries").appendingPathComponent("Wine")
+        if fileManager.fileExists(atPath: nestedWineDir.path) {
+            print("[WhiskyWine Install] Found nested Wine dir at Libraries/Wine, already correct structure")
+            return
+        }
+
+        print("[WhiskyWine Install] WARNING: Could not find Wine directory in expected locations")
     }
 
     private static func makeBinariesExecutable() throws {
