@@ -165,6 +165,17 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
             .appendingPathComponent("whiskywine.resumeData")
     }
 
+    private var cachedTarURL: URL {
+        let fileManager = FileManager.default
+        if let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            let whiskyCacheDir = cacheDir.appendingPathComponent("Whisky", isDirectory: true)
+            try? fileManager.createDirectory(at: whiskyCacheDir, withIntermediateDirectories: true)
+            return whiskyCacheDir.appendingPathComponent("Libraries.tar.gz")
+        }
+        return URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("Libraries.tar.gz")
+    }
+
     init(
         downloadURL: URL,
         totalBytesHandler: @escaping (Int64) -> Void,
@@ -181,6 +192,17 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     func start() {
+        let fileManager = FileManager.default
+
+        if fileManager.fileExists(atPath: cachedTarURL.path) {
+            let fileSize = (try? fileManager.attributesOfItem(atPath: cachedTarURL.path)[.size] as? Int64) ?? 0
+            if fileSize > 0 {
+                print("[WhiskyWineDownload] Using cached tar file (\(fileSize) bytes)")
+                completionHandler(cachedTarURL)
+                return
+            }
+        }
+
         let config = URLSessionConfiguration.default
 
         // Timeouts — large file (123 MB) needs generous limits
@@ -195,7 +217,7 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
         self.session = URLSession(configuration: config, delegate: self, delegateQueue: .main)
 
         // Check if we have resume data from a previous attempt
-        if FileManager.default.fileExists(atPath: resumeDataURL.path),
+        if fileManager.fileExists(atPath: resumeDataURL.path),
            let resumeData = try? Data(contentsOf: resumeDataURL) {
             print("[WhiskyWineDownload] Resuming from saved resume data")
             downloadTask = session.downloadTask(withResumeData: resumeData)
@@ -213,10 +235,22 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
         downloadTask: URLSessionDownloadTask,
         didFinishDownloadingTo location: URL
     ) {
-        // Clean up resume data on success
-        try? FileManager.default.removeItem(at: resumeDataURL)
+        let fileManager = FileManager.default
+
+        try? fileManager.removeItem(at: resumeDataURL)
+
+        do {
+            if fileManager.fileExists(atPath: cachedTarURL.path) {
+                try fileManager.removeItem(at: cachedTarURL)
+            }
+            try fileManager.copyItem(at: location, to: cachedTarURL)
+            print("[WhiskyWineDownload] Cached tar file to \(cachedTarURL.path)")
+        } catch {
+            print("[WhiskyWineDownload] Failed to cache tar file: \(error)")
+        }
+
         print("[WhiskyWineDownload] Download complete")
-        completionHandler(location)
+        completionHandler(cachedTarURL)
     }
 
     func urlSession(

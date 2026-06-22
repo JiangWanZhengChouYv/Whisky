@@ -92,3 +92,6 @@ fastlane/test_output
 iOSInjectionProject/
 任务板.md
 .trae/
+
+# Whisky App build output (235MB)
+Whisky.app/

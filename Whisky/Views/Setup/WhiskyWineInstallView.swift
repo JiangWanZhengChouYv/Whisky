@@ -51,7 +51,7 @@ struct WhiskyWineInstallView: View {
                             .foregroundStyle(.red)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
-                        Button("button.retry") {
+                        Button("重试") {
                             installError = nil
                             installing = true
                             Task {
