@@ -142,7 +142,8 @@ struct WhiskyWineDownloadView: View {
 
 /// Downloads WhiskyWine with resume support, auto-retry, and proxy disabled.
 /// Bypasses system proxy (127.0.0.1:7890 etc.) that can cause 503 / -1 bytes issues.
-final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
+/// Downloads directly to cache file (边下载边缓存).
+final class WhiskyWineDownloadManager: NSObject, URLSessionDataDelegate {
     private let downloadURL: URL
     private let totalBytesHandler: (Int64) -> Void
     private let progressHandler: (Int64, Int64) -> Void
@@ -150,31 +151,25 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
     private let errorHandler: (Error) -> Void
 
     private var session: URLSession!
-    private var downloadTask: URLSessionDownloadTask?
+    private var dataTask: URLSessionDataTask?
     private var retryCount = 0
     private let maxRetries = 3
 
-    private var resumeDataURL: URL {
-        let fileManager = FileManager.default
-        if let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
-            let whiskyCacheDir = cacheDir.appendingPathComponent("Whisky", isDirectory: true)
-            try? fileManager.createDirectory(at: whiskyCacheDir, withIntermediateDirectories: true)
-            return whiskyCacheDir.appendingPathComponent("whiskywine.resumeData")
-        }
-        return URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("whiskywine.resumeData")
-    }
-
     private var cachedTarURL: URL {
         let fileManager = FileManager.default
-        if let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
-            let whiskyCacheDir = cacheDir.appendingPathComponent("Whisky", isDirectory: true)
-            try? fileManager.createDirectory(at: whiskyCacheDir, withIntermediateDirectories: true)
-            return whiskyCacheDir.appendingPathComponent("Libraries.tar.gz")
+        if let supportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let whiskyDir = supportDir.appendingPathComponent("Whisky", isDirectory: true)
+            let downloadsDir = whiskyDir.appendingPathComponent("Downloads", isDirectory: true)
+            try? fileManager.createDirectory(at: downloadsDir, withIntermediateDirectories: true)
+            return downloadsDir.appendingPathComponent("Libraries.tar.gz")
         }
         return URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("Libraries.tar.gz")
     }
+
+    private var outputFileHandle: FileHandle?
+    private var totalBytesWritten: Int64 = 0
+    private var totalBytesExpected: Int64 = 0
 
     init(
         downloadURL: URL,
@@ -205,7 +200,6 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
 
         let config = URLSessionConfiguration.default
 
-        // Timeouts — large file (123 MB) needs generous limits
         config.timeoutIntervalForRequest = 60
         config.timeoutIntervalForResource = 3600
 
@@ -216,103 +210,89 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDownloadDelegate {
 
         self.session = URLSession(configuration: config, delegate: self, delegateQueue: .main)
 
-        // Check if we have resume data from a previous attempt
-        if fileManager.fileExists(atPath: resumeDataURL.path),
-           let resumeData = try? Data(contentsOf: resumeDataURL) {
-            print("[WhiskyWineDownload] Resuming from saved resume data")
-            downloadTask = session.downloadTask(withResumeData: resumeData)
-        } else {
-            print("[WhiskyWineDownload] Starting fresh download: \(downloadURL)")
-            downloadTask = session.downloadTask(with: downloadURL)
-        }
-        downloadTask?.resume()
+        print("[WhiskyWineDownload] Starting fresh download: \(downloadURL)")
+        let request = URLRequest(url: downloadURL)
+        dataTask = session.dataTask(with: request)
+        dataTask?.resume()
     }
 
-    // MARK: - URLSessionDownloadDelegate
+    // MARK: - URLSessionDataDelegate
 
     func urlSession(
         _ session: URLSession,
-        downloadTask: URLSessionDownloadTask,
-        didFinishDownloadingTo location: URL
+        dataTask: URLSessionDataTask,
+        didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
     ) {
         let fileManager = FileManager.default
 
-        try? fileManager.removeItem(at: resumeDataURL)
+        if fileManager.fileExists(atPath: cachedTarURL.path) {
+            try? fileManager.removeItem(at: cachedTarURL)
+        }
+
+        fileManager.createFile(atPath: cachedTarURL.path, contents: nil)
 
         do {
-            if fileManager.fileExists(atPath: cachedTarURL.path) {
-                try fileManager.removeItem(at: cachedTarURL)
-            }
-            try fileManager.copyItem(at: location, to: cachedTarURL)
-            print("[WhiskyWineDownload] Cached tar file to \(cachedTarURL.path)")
+            outputFileHandle = try FileHandle(forWritingTo: cachedTarURL)
         } catch {
-            print("[WhiskyWineDownload] Failed to cache tar file: \(error)")
+            print("[WhiskyWineDownload] Failed to open output file: \(error)")
+            completionHandler(.cancel)
+            return
         }
 
-        print("[WhiskyWineDownload] Download complete")
-        completionHandler(cachedTarURL)
+        totalBytesExpected = response.expectedContentLength
+        totalBytesWritten = 0
+
+        if totalBytesExpected > 0 {
+            totalBytesHandler(totalBytesExpected)
+        }
+
+        completionHandler(.allow)
     }
 
     func urlSession(
         _ session: URLSession,
-        downloadTask: URLSessionDownloadTask,
-        didWriteData bytesWritten: Int64,
-        totalBytesWritten: Int64,
-        totalBytesExpectedToWrite: Int64
+        dataTask: URLSessionDataTask,
+        didReceive data: Data
     ) {
-        // GitHub CDN may return -1 for totalBytesExpectedToWrite (chunked encoding).
-        // We always report what the delegate tells us, even if it's -1.
-        if totalBytesExpectedToWrite > 0 {
-            totalBytesHandler(totalBytesExpectedToWrite)
+        if let fileHandle = outputFileHandle {
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(data)
+            totalBytesWritten += Int64(data.count)
+            progressHandler(totalBytesWritten, totalBytesExpected)
         }
-        progressHandler(totalBytesWritten, totalBytesExpectedToWrite)
     }
-
-    func urlSession(
-        _ session: URLSession,
-        downloadTask: URLSessionDownloadTask,
-        didResumeAtOffset fileOffset: Int64,
-        expectedTotalBytes: Int64
-    ) {
-        print("[WhiskyWineDownload] Resumed at \(fileOffset)/\(expectedTotalBytes)")
-        if expectedTotalBytes > 0 {
-            totalBytesHandler(expectedTotalBytes)
-        }
-        progressHandler(fileOffset, expectedTotalBytes)
-    }
-
-    // MARK: - URLSessionTaskDelegate
 
     func urlSession(
         _ session: URLSession,
         task: URLSessionTask,
         didCompleteWithError error: Error?
     ) {
-        guard let error = error as NSError? else { return }
+        outputFileHandle?.closeFile()
+        outputFileHandle = nil
 
-        print("[WhiskyWineDownload] Error: \(error.code) \(error.localizedDescription)")
+        if let error = error as NSError? {
+            print("[WhiskyWineDownload] Error: \(error.code) \(error.localizedDescription)")
 
-        // Extract resume data from the error
-        let resumeData = error.userInfo[NSURLSessionDownloadTaskResumeData] as? Data
-        if let data = resumeData {
-            try? data.write(to: resumeDataURL, options: .atomic)
-            print("[WhiskyWineDownload] Saved resume data: \(data.count) bytes")
-        }
+            let fileManager = FileManager.default
+            if fileManager.fileExists(atPath: cachedTarURL.path) {
+                try? fileManager.removeItem(at: cachedTarURL)
+            }
 
-        if retryCount < maxRetries {
-            retryCount += 1
-            print("[WhiskyWineDownload] Retry \(retryCount)/\(maxRetries) in 3 seconds...")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                guard let self = self else { return }
-                if let data = try? Data(contentsOf: self.resumeDataURL) {
-                    self.downloadTask = self.session.downloadTask(withResumeData: data)
-                } else {
-                    self.downloadTask = self.session.downloadTask(with: self.downloadURL)
+            if retryCount < maxRetries {
+                retryCount += 1
+                print("[WhiskyWineDownload] Retry \(retryCount)/\(maxRetries) in 3 seconds...")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    guard let self = self else { return }
+                    self.totalBytesWritten = 0
+                    self.start()
                 }
-                self.downloadTask?.resume()
+            } else {
+                errorHandler(error)
             }
         } else {
-            errorHandler(error)
+            print("[WhiskyWineDownload] Download complete, saved to \(cachedTarURL.path) (\(totalBytesWritten) bytes)")
+            completionHandler(cachedTarURL)
         }
     }
 }
