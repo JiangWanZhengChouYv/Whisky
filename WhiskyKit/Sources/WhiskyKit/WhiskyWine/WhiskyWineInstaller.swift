@@ -220,16 +220,42 @@ struct WhiskyWineVersion: Codable {
     var version: SemanticVersion = SemanticVersion(1, 0, 0)
 }
 
-public enum InstallationError: Error, LocalizedError {
+public enum InstallationError: Error, LocalizedError, CustomStringConvertible, CustomNSError {
     case invalidInstallation(String)
     case extractionFailed(String)
 
     public var errorDescription: String? {
+        // Always return a non-nil, human-readable string so that
+        // Foundation's `error.localizedDescription` never falls back to
+        // the "Swift.String 错误 1" placeholder.
         switch self {
         case .invalidInstallation(let reason):
             return "Invalid installation: \(reason)"
         case .extractionFailed(let reason):
             return "Extraction failed: \(reason)"
         }
+    }
+
+    public var description: String {
+        return errorDescription ?? "InstallationError"
+    }
+
+    public var localizedDescription: String {
+        return errorDescription ?? "InstallationError"
+    }
+
+    public static var errorDomain: String { "com.Whisky.InstallationError" }
+
+    public var errorCode: Int {
+        switch self {
+        case .invalidInstallation:
+            return 1
+        case .extractionFailed:
+            return 2
+        }
+    }
+
+    public var errorUserInfo: [String: Any] {
+        return [NSLocalizedDescriptionKey: errorDescription ?? "InstallationError"]
     }
 }

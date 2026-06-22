@@ -110,7 +110,7 @@ struct WhiskyWineDownloadView: View {
                 path.append(.whiskyWineInstall)
             },
             errorHandler: { [self] error in
-                errorMessage = "Download failed: \(error.localizedDescription)"
+                errorMessage = "Download failed: \(error.safeLocalizedDescription)"
             }
         )
         downloadManager = manager
