@@ -272,27 +272,65 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDataDelegate {
         outputFileHandle = nil
 
         if let error = error as NSError? {
-            print("[WhiskyWineDownload] Error: \(error.code) \(error.localizedDescription)")
+            handleDownloadFailure(error)
+            return
+        }
 
-            let fileManager = FileManager.default
-            if fileManager.fileExists(atPath: cachedTarURL.path) {
-                try? fileManager.removeItem(at: cachedTarURL)
-            }
+        if let failureError = validateResponse(task.response) {
+            handleDownloadFailure(failureError)
+            return
+        }
 
-            if retryCount < maxRetries {
-                retryCount += 1
-                print("[WhiskyWineDownload] Retry \(retryCount)/\(maxRetries) in 3 seconds...")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                    guard let self = self else { return }
-                    self.totalBytesWritten = 0
-                    self.start()
-                }
-            } else {
-                errorHandler(error)
+        print("[WhiskyWineDownload] Download complete, saved to \(cachedTarURL.path) (\(totalBytesWritten) bytes)")
+        completionHandler(cachedTarURL)
+    }
+
+    private func validateResponse(_ response: URLResponse?) -> NSError? {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return NSError(
+                domain: "WhiskyWineDownload",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid response type"]
+            )
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            return NSError(
+                domain: "WhiskyWineDownload",
+                code: Int(httpResponse.statusCode),
+                userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode)"]
+            )
+        }
+
+        if totalBytesExpected > 0 && totalBytesWritten != totalBytesExpected {
+            return NSError(
+                domain: "WhiskyWineDownload",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "Download size mismatch"]
+            )
+        }
+
+        return nil
+    }
+
+    private func handleDownloadFailure(_ error: NSError) {
+        print("[WhiskyWineDownload] Error: \(error.code) \(error.localizedDescription)")
+
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: cachedTarURL.path) {
+            try? fileManager.removeItem(at: cachedTarURL)
+        }
+
+        if retryCount < maxRetries {
+            retryCount += 1
+            print("[WhiskyWineDownload] Retry \(retryCount)/\(maxRetries) in 3 seconds...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                guard let self = self else { return }
+                self.totalBytesWritten = 0
+                self.start()
             }
         } else {
-            print("[WhiskyWineDownload] Download complete, saved to \(cachedTarURL.path) (\(totalBytesWritten) bytes)")
-            completionHandler(cachedTarURL)
+            errorHandler(error)
         }
     }
 }
