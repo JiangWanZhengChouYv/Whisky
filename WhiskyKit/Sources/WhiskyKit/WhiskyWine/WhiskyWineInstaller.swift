@@ -112,37 +112,100 @@ public class WhiskyWineInstaller {
             .appendingPathComponent("wine64")
 
         if fileManager.fileExists(atPath: expectedWineBin.path) {
-            print("[WhiskyWine Install] wine64 found at expected path: \(expectedWineBin.path)")
+            print("[WhiskyWine Install] wine64 found at expected path")
             return
         }
 
-        print("[WhiskyWine Install] wine64 NOT found at \(expectedWineBin.path)")
-        print("[WhiskyWine Install] Scanning applicationFolder contents...")
-        if let contents = try? fileManager.contentsOfDirectory(atPath: applicationFolder.path) {
-            print("[WhiskyWine Install] applicationFolder contents: \(contents)")
+        print("[WhiskyWine Install] wine64 NOT at expected path, searching...")
+
+        guard let wine64URL = findWine64(in: applicationFolder) else {
+            print("[WhiskyWine Install] ERROR: wine64 not found in extracted contents")
+            printDirectoryTree(at: applicationFolder, indent: 0)
+            return
         }
 
-        let flatWineDir = applicationFolder.appendingPathComponent("Wine")
-        if fileManager.fileExists(atPath: flatWineDir.path) {
-            print("[WhiskyWine Install] Found flat Wine dir at applicationFolder, moving to libraryFolder")
-            try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
-            let contents = try fileManager.contentsOfDirectory(atPath: applicationFolder.path)
-            for item in contents {
-                if item == "Libraries" { continue }
-                let srcURL = applicationFolder.appendingPathComponent(item)
-                let dstURL = libraryFolder.appendingPathComponent(item)
-                try fileManager.moveItem(at: srcURL, to: dstURL)
+        print("[WhiskyWine Install] Found wine64 at: \(wine64URL.path)")
+        try moveWineToLibrary(from: wine64URL.deletingLastPathComponent().deletingLastPathComponent())
+        try moveVersionPlist(from: applicationFolder)
+        print("[WhiskyWine Install] Contents normalized successfully")
+    }
+
+    private static func findWine64(in root: URL) -> URL? {
+        let fileManager = FileManager.default
+        guard let enumerator = fileManager.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+
+        for case let fileURL as URL in enumerator where fileURL.lastPathComponent == "wine64" {
+            return fileURL
+        }
+        return nil
+    }
+
+    private static func moveWineToLibrary(from wineDir: URL) throws {
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
+        let targetWineDir = libraryFolder.appendingPathComponent("Wine")
+
+        if wineDir.resolvingSymlinksInPath().path == targetWineDir.resolvingSymlinksInPath().path {
+            print("[WhiskyWine Install] Wine already at target location")
+            return
+        }
+
+        if fileManager.fileExists(atPath: targetWineDir.path) {
+            try fileManager.removeItem(at: targetWineDir)
+        }
+
+        print("[WhiskyWine Install] Moving Wine from \(wineDir.path) to \(targetWineDir.path)")
+        try fileManager.moveItem(at: wineDir, to: targetWineDir)
+    }
+
+    private static func moveVersionPlist(from root: URL) throws {
+        let fileManager = FileManager.default
+        let versionPlistName = "WhiskyWineVersion.plist"
+
+        guard let enumerator = fileManager.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return }
+
+        let targetPlist = libraryFolder.appendingPathComponent(versionPlistName)
+        for case let fileURL as URL in enumerator where fileURL.lastPathComponent == versionPlistName {
+            guard fileURL.resolvingSymlinksInPath().path != targetPlist.resolvingSymlinksInPath().path else {
+                return
             }
+            if fileManager.fileExists(atPath: targetPlist.path) {
+                try fileManager.removeItem(at: targetPlist)
+            }
+            print("[WhiskyWine Install] Moving \(versionPlistName) to \(targetPlist.path)")
+            try fileManager.moveItem(at: fileURL, to: targetPlist)
             return
         }
+    }
 
-        let nestedWineDir = applicationFolder.appendingPathComponent("Libraries").appendingPathComponent("Wine")
-        if fileManager.fileExists(atPath: nestedWineDir.path) {
-            print("[WhiskyWine Install] Found nested Wine dir at Libraries/Wine, already correct structure")
-            return
+    private static func printDirectoryTree(at url: URL, indent: Int) {
+        let fileManager = FileManager.default
+        let prefix = String(repeating: "  ", count: indent)
+        do {
+            let contents = try fileManager.contentsOfDirectory(atPath: url.path)
+            print("\(prefix)\(url.lastPathComponent)/")
+            for item in contents.sorted() {
+                let itemURL = url.appendingPathComponent(item)
+                var isDir: ObjCBool = false
+                if fileManager.fileExists(atPath: itemURL.path, isDirectory: &isDir) {
+                    if isDir.boolValue {
+                        printDirectoryTree(at: itemURL, indent: indent + 1)
+                    } else {
+                        print("\(prefix)  \(item)")
+                    }
+                }
+            }
+        } catch {
+            print("\(prefix)\(url.lastPathComponent)/ (error: \(error.localizedDescription))")
         }
-
-        print("[WhiskyWine Install] WARNING: Could not find Wine directory in expected locations")
     }
 
     private static func makeBinariesExecutable() throws {
