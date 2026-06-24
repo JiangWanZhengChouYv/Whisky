@@ -167,6 +167,10 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDataDelegate {
             .appendingPathComponent("Libraries.tar.gz")
     }
 
+    private var completeMarkerURL: URL {
+        cachedTarURL.appendingPathExtension("complete")
+    }
+
     private var outputFileHandle: FileHandle?
     private var totalBytesWritten: Int64 = 0
     private var totalBytesExpected: Int64 = 0
@@ -189,13 +193,21 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDataDelegate {
     func start() {
         let fileManager = FileManager.default
 
-        if fileManager.fileExists(atPath: cachedTarURL.path) {
+        if fileManager.fileExists(atPath: cachedTarURL.path),
+           fileManager.fileExists(atPath: completeMarkerURL.path) {
             let fileSize = (try? fileManager.attributesOfItem(atPath: cachedTarURL.path)[.size] as? Int64) ?? 0
             if fileSize > 0 {
                 print("[WhiskyWineDownload] Using cached tar file (\(fileSize) bytes)")
                 completionHandler(cachedTarURL)
                 return
             }
+        }
+
+        if fileManager.fileExists(atPath: cachedTarURL.path) {
+            try? fileManager.removeItem(at: cachedTarURL)
+        }
+        if fileManager.fileExists(atPath: completeMarkerURL.path) {
+            try? fileManager.removeItem(at: completeMarkerURL)
         }
 
         let config = URLSessionConfiguration.default
@@ -282,6 +294,11 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDataDelegate {
         }
 
         print("[WhiskyWineDownload] Download complete, saved to \(cachedTarURL.path) (\(totalBytesWritten) bytes)")
+
+        let fileManager = FileManager.default
+        try? fileManager.createFile(atPath: completeMarkerURL.path, contents: nil)
+        print("[WhiskyWineDownload] Created complete marker at \(completeMarkerURL.path)")
+
         completionHandler(cachedTarURL)
     }
 
@@ -319,6 +336,9 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDataDelegate {
         let fileManager = FileManager.default
         if fileManager.fileExists(atPath: cachedTarURL.path) {
             try? fileManager.removeItem(at: cachedTarURL)
+        }
+        if fileManager.fileExists(atPath: completeMarkerURL.path) {
+            try? fileManager.removeItem(at: completeMarkerURL)
         }
 
         if retryCount < maxRetries {
