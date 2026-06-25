@@ -143,9 +143,18 @@ private extension WhiskyWineInstaller {
     static func validateInstallation() throws {
         let fileManager = FileManager.default
         let wineBinPath = binFolder.appendingPathComponent("wine64")
+        let wineLibFolder = libraryFolder
+            .appendingPathComponent("Wine")
+            .appendingPathComponent("lib")
+        let winetricksPath = binFolder.appendingPathComponent("winetricks")
+
         print("  - libraryFolder path: \(libraryFolder.path)")
         print("  - wineBinary path: \(wineBinPath.path)")
         print("  - wineBinary exists: \(fileManager.fileExists(atPath: wineBinPath.path))")
+        print("  - wineLib path: \(wineLibFolder.path)")
+        print("  - wineLib exists: \(fileManager.fileExists(atPath: wineLibFolder.path))")
+        print("  - winetricks path: \(winetricksPath.path)")
+        print("  - winetricks exists: \(fileManager.fileExists(atPath: winetricksPath.path))")
 
         let versionPlistURL = libraryFolder
             .appendingPathComponent("WhiskyWineVersion")
@@ -162,12 +171,36 @@ private extension WhiskyWineInstaller {
             throw error
         }
 
+        var isDir: ObjCBool = false
+        if !fileManager.fileExists(atPath: wineLibFolder.path, isDirectory: &isDir) || !isDir.boolValue {
+            let error = InstallationError.invalidInstallation(
+                "Wine lib directory not found at \(wineLibFolder.path)"
+            )
+            print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
+            throw error
+        }
+
+        if !fileManager.fileExists(atPath: winetricksPath.path) {
+            print("[WhiskyWine Install] WARNING: winetricks script not found at \(winetricksPath.path)")
+        }
+
         if whiskyWineVersion() == nil {
             let error = InstallationError.invalidInstallation(
                 "WhiskyWineVersion.plist not found or invalid"
             )
             print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
             throw error
+        }
+
+        print("[WhiskyWine Install] Running wine64 --version to verify functionality...")
+        do {
+            let versionOutput = try runWineCommand(arguments: ["--version"])
+            print("[WhiskyWine Install] wine64 --version output: \(versionOutput)")
+            if versionOutput.isEmpty {
+                print("[WhiskyWine Install] WARNING: wine64 --version returned empty output")
+            }
+        } catch {
+            print("[WhiskyWine Install] WARNING: Failed to run wine64 --version: \(error)")
         }
     }
 
@@ -178,26 +211,29 @@ private extension WhiskyWineInstaller {
             .appendingPathComponent("bin")
             .appendingPathComponent("wine64")
 
-        if fileManager.fileExists(atPath: expectedWineBin.path) {
+        let wineAlreadyInPlace = fileManager.fileExists(atPath: expectedWineBin.path)
+
+        if !wineAlreadyInPlace {
+            print("[WhiskyWine Install] wine64 NOT at expected path, searching...")
+
+            guard let wine64URL = findWine64(in: applicationFolder) else {
+                print("[WhiskyWine Install] ERROR: wine64 not found in extracted contents")
+                printDirectoryTree(at: applicationFolder, indent: 0)
+                throw InstallationError.invalidInstallation(
+                    "wine64 binary not found in extracted archive. " +
+                    "The downloaded file may be corrupted. " +
+                    "Directory structure:\n\(directoryTreeDescription(at: applicationFolder))"
+                )
+            }
+
+            print("[WhiskyWine Install] Found wine64 at: \(wine64URL.path)")
+            try moveWineToLibrary(from: wine64URL.deletingLastPathComponent().deletingLastPathComponent())
+            try moveVersionPlist(from: applicationFolder)
+        } else {
             print("[WhiskyWine Install] wine64 found at expected path")
-            return
         }
 
-        print("[WhiskyWine Install] wine64 NOT at expected path, searching...")
-
-        guard let wine64URL = findWine64(in: applicationFolder) else {
-            print("[WhiskyWine Install] ERROR: wine64 not found in extracted contents")
-            printDirectoryTree(at: applicationFolder, indent: 0)
-            throw InstallationError.invalidInstallation(
-                "wine64 binary not found in extracted archive. " +
-                "The downloaded file may be corrupted. " +
-                "Directory structure:\n\(directoryTreeDescription(at: applicationFolder))"
-            )
-        }
-
-        print("[WhiskyWine Install] Found wine64 at: \(wine64URL.path)")
-        try moveWineToLibrary(from: wine64URL.deletingLastPathComponent().deletingLastPathComponent())
-        try moveVersionPlist(from: applicationFolder)
+        try moveLibDirectoryIfNeeded()
         print("[WhiskyWine Install] Contents normalized successfully")
     }
 
@@ -278,6 +314,78 @@ private extension WhiskyWineInstaller {
         }
     }
 
+    static func moveLibDirectoryIfNeeded() throws {
+        let fileManager = FileManager.default
+        let wineLibFolder = libraryFolder
+            .appendingPathComponent("Wine")
+            .appendingPathComponent("lib")
+
+        if fileManager.fileExists(atPath: wineLibFolder.path) {
+            print("[WhiskyWine Install] lib directory already at expected path: \(wineLibFolder.path)")
+            return
+        }
+
+        print("[WhiskyWine Install] lib directory not at expected path, searching...")
+
+        let possibleLibLocations = [
+            applicationFolder.appendingPathComponent("lib"),
+            libraryFolder.appendingPathComponent("lib")
+        ]
+
+        var foundLibURL: URL?
+        for libURL in possibleLibLocations {
+            var isDir: ObjCBool = false
+            if fileManager.fileExists(atPath: libURL.path, isDirectory: &isDir), isDir.boolValue {
+                foundLibURL = libURL
+                break
+            }
+        }
+
+        if foundLibURL == nil {
+            foundLibURL = findLibDirectory(in: applicationFolder)
+        }
+
+        guard let libURL = foundLibURL else {
+            print("[WhiskyWine Install] WARNING: lib directory not found in extracted contents")
+            return
+        }
+
+        print("[WhiskyWine Install] Found lib directory at: \(libURL.path)")
+
+        let wineFolder = libraryFolder.appendingPathComponent("Wine")
+        try fileManager.createDirectory(at: wineFolder, withIntermediateDirectories: true)
+
+        if fileManager.fileExists(atPath: wineLibFolder.path) {
+            try fileManager.removeItem(at: wineLibFolder)
+        }
+
+        print("[WhiskyWine Install] Moving lib from \(libURL.path) to \(wineLibFolder.path)")
+        try fileManager.moveItem(at: libURL, to: wineLibFolder)
+        print("[WhiskyWine Install] lib directory moved successfully")
+    }
+
+    static func findLibDirectory(in root: URL) -> URL? {
+        let fileManager = FileManager.default
+        guard let enumerator = fileManager.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+
+        for case let fileURL as URL in enumerator {
+            if fileURL.lastPathComponent == "lib" {
+                var isDir: ObjCBool = false
+                if fileManager.fileExists(atPath: fileURL.path, isDirectory: &isDir), isDir.boolValue {
+                    let parentDir = fileURL.deletingLastPathComponent().lastPathComponent
+                    if parentDir.lowercased() != "wine" {
+                        return fileURL
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
     static func printDirectoryTree(at url: URL, indent: Int) {
         print(directoryTreeDescription(at: url, indent: indent))
     }
@@ -323,6 +431,25 @@ private extension WhiskyWineInstaller {
                 )
             }
         }
+    }
+
+    static func runWineCommand(arguments: [String]) throws -> String {
+        let wine64URL = binFolder.appendingPathComponent("wine64")
+        let process = Process()
+        process.executableURL = wine64URL
+        process.arguments = arguments
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+
+        try process.run()
+        process.waitUntilExit()
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8) ?? ""
+
+        return output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func ensureVersionPlist() throws {
