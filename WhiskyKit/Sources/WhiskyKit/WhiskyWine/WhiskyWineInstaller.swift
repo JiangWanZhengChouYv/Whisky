@@ -258,7 +258,10 @@ private extension WhiskyWineInstaller {
             }
 
             print("[WhiskyWine Install] Found wine64 at: \(wine64URL.path)")
-            try WhiskyWineFileUtils.moveWineToLibrary(from: wine64URL.deletingLastPathComponent().deletingLastPathComponent())
+            let wineDir = wine64URL
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+            try WhiskyWineFileUtils.moveWineToLibrary(from: wineDir)
             try WhiskyWineFileUtils.moveVersionPlist(from: applicationFolder)
         } else {
             print("[WhiskyWine Install] wine64 found at expected path")
