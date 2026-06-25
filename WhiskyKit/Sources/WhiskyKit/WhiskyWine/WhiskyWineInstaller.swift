@@ -58,10 +58,10 @@ public class WhiskyWineInstaller {
             try normalizeExtractedContents()
 
             print("[WhiskyWine Install] Setting executable permissions...")
-            try makeBinariesExecutable()
+            try WhiskyWineInstallationHelpers.makeBinariesExecutable()
 
             print("[WhiskyWine Install] Ensuring version plist exists...")
-            try ensureVersionPlist()
+            try WhiskyWineInstallationHelpers.ensureVersionPlist()
 
             print("[WhiskyWine Install] Creating wine64 symlink if needed...")
             try createWine64SymlinkIfNeeded()
@@ -148,6 +148,27 @@ private extension WhiskyWineInstaller {
             .appendingPathComponent("lib")
         let winetricksPath = binFolder.appendingPathComponent("winetricks")
 
+        printValidationDiagnostics(
+            wineBinPath: wineBinPath,
+            wineLibFolder: wineLibFolder,
+            winetricksPath: winetricksPath
+        )
+
+        try validateRequiredFilesExist(
+            wineBinPath: wineBinPath,
+            wineLibFolder: wineLibFolder,
+            winetricksPath: winetricksPath
+        )
+
+        verifyWineFunctionality()
+    }
+
+    private static func printValidationDiagnostics(
+        wineBinPath: URL,
+        wineLibFolder: URL,
+        winetricksPath: URL
+    ) {
+        let fileManager = FileManager.default
         print("  - libraryFolder path: \(libraryFolder.path)")
         print("  - wineBinary path: \(wineBinPath.path)")
         print("  - wineBinary exists: \(fileManager.fileExists(atPath: wineBinPath.path))")
@@ -162,6 +183,14 @@ private extension WhiskyWineInstaller {
         print("  - versionPlist path: \(versionPlistURL.path)")
         print("  - versionPlist exists: \(fileManager.fileExists(atPath: versionPlistURL.path))")
         print("  - whiskyWineVersion result: \(String(describing: whiskyWineVersion()))")
+    }
+
+    private static func validateRequiredFilesExist(
+        wineBinPath: URL,
+        wineLibFolder: URL,
+        winetricksPath: URL
+    ) throws {
+        let fileManager = FileManager.default
 
         if !fileManager.fileExists(atPath: wineBinPath.path) {
             let error = InstallationError.invalidInstallation(
@@ -191,10 +220,12 @@ private extension WhiskyWineInstaller {
             print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
             throw error
         }
+    }
 
+    private static func verifyWineFunctionality() {
         print("[WhiskyWine Install] Running wine64 --version to verify functionality...")
         do {
-            let versionOutput = try runWineCommand(arguments: ["--version"])
+            let versionOutput = try WhiskyWineInstallationHelpers.runWineCommand(arguments: ["--version"])
             print("[WhiskyWine Install] wine64 --version output: \(versionOutput)")
             if versionOutput.isEmpty {
                 print("[WhiskyWine Install] WARNING: wine64 --version returned empty output")
@@ -216,40 +247,25 @@ private extension WhiskyWineInstaller {
         if !wineAlreadyInPlace {
             print("[WhiskyWine Install] wine64 NOT at expected path, searching...")
 
-            guard let wine64URL = findWine64(in: applicationFolder) else {
+            guard let wine64URL = WhiskyWineFileUtils.findWine64(in: applicationFolder) else {
                 print("[WhiskyWine Install] ERROR: wine64 not found in extracted contents")
-                printDirectoryTree(at: applicationFolder, indent: 0)
+                WhiskyWineFileUtils.printDirectoryTree(at: applicationFolder, indent: 0)
                 throw InstallationError.invalidInstallation(
                     "wine64 binary not found in extracted archive. " +
                     "The downloaded file may be corrupted. " +
-                    "Directory structure:\n\(directoryTreeDescription(at: applicationFolder))"
+                    "Directory structure:\n\(WhiskyWineFileUtils.directoryTreeDescription(at: applicationFolder))"
                 )
             }
 
             print("[WhiskyWine Install] Found wine64 at: \(wine64URL.path)")
-            try moveWineToLibrary(from: wine64URL.deletingLastPathComponent().deletingLastPathComponent())
-            try moveVersionPlist(from: applicationFolder)
+            try WhiskyWineFileUtils.moveWineToLibrary(from: wine64URL.deletingLastPathComponent().deletingLastPathComponent())
+            try WhiskyWineFileUtils.moveVersionPlist(from: applicationFolder)
         } else {
             print("[WhiskyWine Install] wine64 found at expected path")
         }
 
-        try moveLibDirectoryIfNeeded()
+        try WhiskyWineFileUtils.moveLibDirectoryIfNeeded()
         print("[WhiskyWine Install] Contents normalized successfully")
-    }
-
-    static func findWine64(in root: URL) -> URL? {
-        let fileManager = FileManager.default
-        guard let enumerator = fileManager.enumerator(
-            at: root,
-            includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles]
-        ) else { return nil }
-
-        for case let fileURL as URL in enumerator
-        where fileURL.lastPathComponent == "wine64" || fileURL.lastPathComponent == "wine" {
-            return fileURL
-        }
-        return nil
     }
 
     static func createWine64SymlinkIfNeeded() throws {
@@ -270,217 +286,5 @@ private extension WhiskyWineInstaller {
         print("[WhiskyWine Install] Creating wine64 symlink -> wine")
         try fileManager.createSymbolicLink(at: wine64URL, withDestinationURL: wineURL)
         print("[WhiskyWine Install] Symlink created successfully")
-    }
-
-    static func moveWineToLibrary(from wineDir: URL) throws {
-        let fileManager = FileManager.default
-        try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
-        let targetWineDir = libraryFolder.appendingPathComponent("Wine")
-
-        if wineDir.resolvingSymlinksInPath().path == targetWineDir.resolvingSymlinksInPath().path {
-            print("[WhiskyWine Install] Wine already at target location")
-            return
-        }
-
-        if fileManager.fileExists(atPath: targetWineDir.path) {
-            try fileManager.removeItem(at: targetWineDir)
-        }
-
-        print("[WhiskyWine Install] Moving Wine from \(wineDir.path) to \(targetWineDir.path)")
-        try fileManager.moveItem(at: wineDir, to: targetWineDir)
-    }
-
-    static func moveVersionPlist(from root: URL) throws {
-        let fileManager = FileManager.default
-        let versionPlistName = "WhiskyWineVersion.plist"
-
-        guard let enumerator = fileManager.enumerator(
-            at: root,
-            includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles]
-        ) else { return }
-
-        let targetPlist = libraryFolder.appendingPathComponent(versionPlistName)
-        for case let fileURL as URL in enumerator where fileURL.lastPathComponent == versionPlistName {
-            guard fileURL.resolvingSymlinksInPath().path != targetPlist.resolvingSymlinksInPath().path else {
-                return
-            }
-            if fileManager.fileExists(atPath: targetPlist.path) {
-                try fileManager.removeItem(at: targetPlist)
-            }
-            print("[WhiskyWine Install] Moving \(versionPlistName) to \(targetPlist.path)")
-            try fileManager.moveItem(at: fileURL, to: targetPlist)
-            return
-        }
-    }
-
-    static func moveLibDirectoryIfNeeded() throws {
-        let fileManager = FileManager.default
-        let wineLibFolder = libraryFolder
-            .appendingPathComponent("Wine")
-            .appendingPathComponent("lib")
-
-        if fileManager.fileExists(atPath: wineLibFolder.path) {
-            print("[WhiskyWine Install] lib directory already at expected path: \(wineLibFolder.path)")
-            return
-        }
-
-        print("[WhiskyWine Install] lib directory not at expected path, searching...")
-
-        let possibleLibLocations = [
-            applicationFolder.appendingPathComponent("lib"),
-            libraryFolder.appendingPathComponent("lib")
-        ]
-
-        var foundLibURL: URL?
-        for libURL in possibleLibLocations {
-            var isDir: ObjCBool = false
-            if fileManager.fileExists(atPath: libURL.path, isDirectory: &isDir), isDir.boolValue {
-                foundLibURL = libURL
-                break
-            }
-        }
-
-        if foundLibURL == nil {
-            foundLibURL = findLibDirectory(in: applicationFolder)
-        }
-
-        guard let libURL = foundLibURL else {
-            print("[WhiskyWine Install] WARNING: lib directory not found in extracted contents")
-            return
-        }
-
-        print("[WhiskyWine Install] Found lib directory at: \(libURL.path)")
-
-        let wineFolder = libraryFolder.appendingPathComponent("Wine")
-        try fileManager.createDirectory(at: wineFolder, withIntermediateDirectories: true)
-
-        if fileManager.fileExists(atPath: wineLibFolder.path) {
-            try fileManager.removeItem(at: wineLibFolder)
-        }
-
-        print("[WhiskyWine Install] Moving lib from \(libURL.path) to \(wineLibFolder.path)")
-        try fileManager.moveItem(at: libURL, to: wineLibFolder)
-        print("[WhiskyWine Install] lib directory moved successfully")
-    }
-
-    static func findLibDirectory(in root: URL) -> URL? {
-        let fileManager = FileManager.default
-        guard let enumerator = fileManager.enumerator(
-            at: root,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else { return nil }
-
-        for case let fileURL as URL in enumerator {
-            if fileURL.lastPathComponent == "lib" {
-                var isDir: ObjCBool = false
-                if fileManager.fileExists(atPath: fileURL.path, isDirectory: &isDir), isDir.boolValue {
-                    let parentDir = fileURL.deletingLastPathComponent().lastPathComponent
-                    if parentDir.lowercased() != "wine" {
-                        return fileURL
-                    }
-                }
-            }
-        }
-        return nil
-    }
-
-    static func printDirectoryTree(at url: URL, indent: Int) {
-        print(directoryTreeDescription(at: url, indent: indent))
-    }
-
-    static func directoryTreeDescription(at url: URL, indent: Int = 0) -> String {
-        let fileManager = FileManager.default
-        var result = ""
-
-        func buildTree(_ url: URL, indent: Int) {
-            let prefix = String(repeating: "  ", count: indent)
-            do {
-                let contents = try fileManager.contentsOfDirectory(atPath: url.path)
-                result += "\(prefix)\(url.lastPathComponent)/\n"
-                for item in contents.sorted() {
-                    let itemURL = url.appendingPathComponent(item)
-                    var isDir: ObjCBool = false
-                    if fileManager.fileExists(atPath: itemURL.path, isDirectory: &isDir) {
-                        if isDir.boolValue {
-                            buildTree(itemURL, indent: indent + 1)
-                        } else {
-                            result += "\(prefix)  \(item)\n"
-                        }
-                    }
-                }
-            } catch {
-                result += "\(prefix)\(url.lastPathComponent)/ (error: \(error.localizedDescription))\n"
-            }
-        }
-
-        buildTree(url, indent: indent)
-        return result
-    }
-
-    static func makeBinariesExecutable() throws {
-        let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: binFolder.path) {
-            let binContents = try fileManager.contentsOfDirectory(atPath: binFolder.path)
-            for binFile in binContents {
-                let binPath = binFolder.appendingPathComponent(binFile).path
-                try fileManager.setAttributes(
-                    [.posixPermissions: NSNumber(value: 0o755)],
-                    ofItemAtPath: binPath
-                )
-            }
-        }
-    }
-
-    static func runWineCommand(arguments: [String]) throws -> String {
-        let wine64URL = binFolder.appendingPathComponent("wine64")
-        let process = Process()
-        process.executableURL = wine64URL
-        process.arguments = arguments
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8) ?? ""
-
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    static func ensureVersionPlist() throws {
-        let fileManager = FileManager.default
-        let versionPlistURL = libraryFolder
-            .appendingPathComponent("WhiskyWineVersion")
-            .appendingPathExtension("plist")
-
-        let shouldCreateNew: Bool
-        if fileManager.fileExists(atPath: versionPlistURL.path) {
-            // Validate existing plist can be decoded
-            do {
-                let data = try Data(contentsOf: versionPlistURL)
-                _ = try PropertyListDecoder().decode(WhiskyWineVersion.self, from: data)
-                shouldCreateNew = false
-            } catch {
-                print("[WhiskyWine Install] Existing version plist invalid, recreating: \(error)")
-                shouldCreateNew = true
-            }
-        } else {
-            shouldCreateNew = true
-        }
-
-        if shouldCreateNew {
-            try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
-            let encoder = PropertyListEncoder()
-            encoder.outputFormat = .xml
-            let versionInfo = WhiskyWineVersion()
-            let versionData = try encoder.encode(versionInfo)
-            try versionData.write(to: versionPlistURL)
-            print("[WhiskyWine Install] Created WhiskyWineVersion.plist")
-        }
     }
 }
