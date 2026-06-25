@@ -63,6 +63,9 @@ public class WhiskyWineInstaller {
             print("[WhiskyWine Install] Ensuring version plist exists...")
             try ensureVersionPlist()
 
+            print("[WhiskyWine Install] Creating wine64 symlink if needed...")
+            try createWine64SymlinkIfNeeded()
+
             print("[WhiskyWine Install] Validating installation...")
             try validateInstallation()
 
@@ -206,10 +209,31 @@ private extension WhiskyWineInstaller {
             options: [.skipsHiddenFiles]
         ) else { return nil }
 
-        for case let fileURL as URL in enumerator where fileURL.lastPathComponent == "wine64" {
+        for case let fileURL as URL in enumerator
+        where fileURL.lastPathComponent == "wine64" || fileURL.lastPathComponent == "wine" {
             return fileURL
         }
         return nil
+    }
+
+    static func createWine64SymlinkIfNeeded() throws {
+        let fileManager = FileManager.default
+        let wine64URL = binFolder.appendingPathComponent("wine64")
+        let wineURL = binFolder.appendingPathComponent("wine")
+
+        if fileManager.fileExists(atPath: wine64URL.path) {
+            print("[WhiskyWine Install] wine64 already exists, skipping symlink creation")
+            return
+        }
+
+        guard fileManager.fileExists(atPath: wineURL.path) else {
+            print("[WhiskyWine Install] wine binary not found, cannot create symlink")
+            return
+        }
+
+        print("[WhiskyWine Install] Creating wine64 symlink -> wine")
+        try fileManager.createSymbolicLink(at: wine64URL, withDestinationURL: wineURL)
+        print("[WhiskyWine Install] Symlink created successfully")
     }
 
     static func moveWineToLibrary(from wineDir: URL) throws {
