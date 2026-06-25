@@ -136,20 +136,29 @@ class Winetricks {
             return (nil, .missingVerbsFile)
         }
 
-        let verbs: String = await { () async -> String in
-            do {
-                let (data, _) = try await URLSession.shared.data(from: verbsURL)
-                return String(data: data, encoding: .utf8) ?? String()
-            } catch {
-                return String()
-            }
-        }()
-
+        let verbs = await loadVerbsContent(from: verbsURL)
         guard !verbs.isEmpty else {
             return (nil, .emptyVerbs)
         }
 
-        let lines = verbs.components(separatedBy: "\n")
+        let categories = parseVerbsLines(verbs.components(separatedBy: "\n"))
+        if categories.isEmpty {
+            return (nil, .parseFailed)
+        }
+
+        return (categories, nil)
+    }
+
+    private static func loadVerbsContent(from url: URL) async -> String {
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            return String(data: data, encoding: .utf8) ?? String()
+        } catch {
+            return String()
+        }
+    }
+
+    private static func parseVerbsLines(_ lines: [String]) -> [WinetricksCategory] {
         var categories: [WinetricksCategory] = []
         var currentCategory: WinetricksCategory?
 
@@ -161,15 +170,12 @@ class Winetricks {
 
                 let categoryName = line.replacingOccurrences(of: "=====", with: "").trimmingCharacters(in: .whitespaces)
                 if let cateogry = WinetricksCategories(rawValue: categoryName) {
-                    currentCategory = WinetricksCategory(category: cateogry,
-                                                         verbs: [])
+                    currentCategory = WinetricksCategory(category: cateogry, verbs: [])
                 } else {
                     currentCategory = nil
                 }
             } else {
-                guard currentCategory != nil else {
-                    continue
-                }
+                guard currentCategory != nil else { continue }
 
                 let verbName = line.components(separatedBy: " ")[0]
                 let verbDescription = line.replacingOccurrences(of: "\(verbName) ", with: "")
@@ -182,10 +188,6 @@ class Winetricks {
             categories.append(currentCategory)
         }
 
-        if categories.isEmpty {
-            return (nil, .parseFailed)
-        }
-
-        return (categories, nil)
+        return categories
     }
 }
