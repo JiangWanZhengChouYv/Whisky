@@ -330,19 +330,60 @@ private extension WhiskyWineInstaller {
         let versionPlistURL = libraryFolder
             .appendingPathComponent("WhiskyWineVersion")
             .appendingPathExtension("plist")
-        if !fileManager.fileExists(atPath: versionPlistURL.path) {
+
+        let shouldCreateNew: Bool
+        if fileManager.fileExists(atPath: versionPlistURL.path) {
+            // Validate existing plist can be decoded
+            do {
+                let data = try Data(contentsOf: versionPlistURL)
+                _ = try PropertyListDecoder().decode(WhiskyWineVersion.self, from: data)
+                shouldCreateNew = false
+            } catch {
+                print("[WhiskyWine Install] Existing version plist invalid, recreating: \(error)")
+                shouldCreateNew = true
+            }
+        } else {
+            shouldCreateNew = true
+        }
+
+        if shouldCreateNew {
             try fileManager.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
             let encoder = PropertyListEncoder()
             encoder.outputFormat = .xml
             let versionInfo = WhiskyWineVersion()
             let versionData = try encoder.encode(versionInfo)
             try versionData.write(to: versionPlistURL)
+            print("[WhiskyWine Install] Created WhiskyWineVersion.plist")
         }
     }
 }
 
 struct WhiskyWineVersion: Codable {
     var version: SemanticVersion = SemanticVersion(1, 0, 0)
+
+    enum CodingKeys: String, CodingKey {
+        case version
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Try string format first (e.g., "1.0.0")
+        if let versionString = try? container.decode(String.self, forKey: .version),
+           let parsedVersion = SemanticVersion(versionString) {
+            self.version = parsedVersion
+            return
+        }
+        // Fall back to default Codable format (nested dict with major/minor/patch)
+        self.version = try container.decode(SemanticVersion.self, forKey: .version)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        // Encode as string for compatibility
+        try container.encode(version.description, forKey: .version)
+    }
 }
 
 public enum InstallationError: Error, LocalizedError, CustomStringConvertible, CustomNSError {
