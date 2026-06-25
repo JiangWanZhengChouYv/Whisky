@@ -42,51 +42,64 @@ final class BottleVM: ObservableObject, @unchecked Sendable {
         let newBottleDir = bottleURL.appending(path: UUID().uuidString)
 
         Task.detached {
-            var bottleId: Bottle?
-            do {
-                try FileManager.default.createDirectory(atPath: newBottleDir.path(percentEncoded: false),
-                                                        withIntermediateDirectories: true)
-                let bottle = Bottle(bottleUrl: newBottleDir, inFlight: true)
-                bottleId = bottle
-
-                await MainActor.run {
-                    self.bottles.append(bottle)
-                }
-
-                bottle.settings.windowsVersion = winVersion
-                bottle.settings.name = bottleName
-                // 先初始化 Wine prefix，再设置 Windows 版本
-                try await Wine.wineboot(bottle: bottle)
-                try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
-                let wineVer = try await Wine.wineVersion()
-                bottle.settings.wineVersion = SemanticVersion(wineVer) ?? SemanticVersion(0, 0, 0)
-                // 成功后持久化记录
-                await MainActor.run {
-                    bottle.inFlight = false
-                    self.bottlesList.paths.append(newBottleDir)
-                    self.loadBottles()
-                }
-            } catch {
-                let nsError = error as NSError
-                print("Failed to create new bottle: \(error)")
-                print("Detailed error: domain=\(nsError.domain), code=\(nsError.code), userInfo=\(nsError.userInfo)")
-                await MainActor.run {
-                    let alert = NSAlert()
-                    alert.messageText = "Failed to create bottle"
-                    alert.informativeText = error.localizedDescription
-                    alert.alertStyle = .critical
-                    alert.addButton(withTitle: String(localized: "button.ok"))
-                    alert.runModal()
-                }
-                if let bottle = bottleId {
-                    await MainActor.run {
-                        bottle.inFlight = false
-                        self.bottlesList.paths.append(newBottleDir)
-                        self.loadBottles()
-                    }
-                }
-            }
+            await self.createBottleAsync(bottleName: bottleName,
+                                         winVersion: winVersion,
+                                         newBottleDir: newBottleDir)
         }
         return newBottleDir
+    }
+
+    private func createBottleAsync(bottleName: String,
+                                   winVersion: WinVersion,
+                                   newBottleDir: URL) async {
+        var bottleId: Bottle?
+        do {
+            try FileManager.default.createDirectory(atPath: newBottleDir.path(percentEncoded: false),
+                                                    withIntermediateDirectories: true)
+            let bottle = Bottle(bottleUrl: newBottleDir, inFlight: true)
+            bottleId = bottle
+
+            await MainActor.run {
+                self.bottles.append(bottle)
+            }
+
+            bottle.settings.windowsVersion = winVersion
+            bottle.settings.name = bottleName
+            try await Wine.wineboot(bottle: bottle)
+            try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
+            let wineVer = try await Wine.wineVersion()
+            bottle.settings.wineVersion = SemanticVersion(wineVer) ?? SemanticVersion(0, 0, 0)
+            await MainActor.run {
+                bottle.inFlight = false
+                self.bottlesList.paths.append(newBottleDir)
+                self.loadBottles()
+            }
+        } catch {
+            await handleBottleCreationError(error: error,
+                                            bottleId: bottleId,
+                                            newBottleDir: newBottleDir)
+        }
+    }
+
+    @MainActor
+    private func handleBottleCreationError(error: Error,
+                                           bottleId: Bottle?,
+                                           newBottleDir: URL) async {
+        let nsError = error as NSError
+        print("Failed to create new bottle: \(error)")
+        print("Detailed error: domain=\(nsError.domain), code=\(nsError.code), userInfo=\(nsError.userInfo)")
+
+        let alert = NSAlert()
+        alert.messageText = "Failed to create bottle"
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: String(localized: "button.ok"))
+        alert.runModal()
+
+        if let bottle = bottleId {
+            bottle.inFlight = false
+            self.bottlesList.paths.append(newBottleDir)
+            self.loadBottles()
+        }
     }
 }
