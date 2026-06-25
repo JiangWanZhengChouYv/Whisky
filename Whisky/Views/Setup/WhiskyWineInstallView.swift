@@ -54,10 +54,11 @@ struct WhiskyWineInstallView: View {
                         Button("重试") {
                             installError = nil
                             installing = true
-                            Task {
-                                let result = await WhiskyWineInstaller.install(from: tarLocation)
-                                await handleInstallResult(result)
+                            clearCachedDownload()
+                            if let index = path.firstIndex(of: .whiskyWineInstall) {
+                                path.removeLast(path.count - index)
                             }
+                            path.append(.whiskyWineDownload)
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -95,6 +96,26 @@ struct WhiskyWineInstallView: View {
         case .failure(let error):
             installing = false
             installError = error.safeLocalizedDescription
+        }
+    }
+
+    private func clearCachedDownload() {
+        let fileManager = FileManager.default
+        if let supportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let downloadsDir = supportDir
+                .appendingPathComponent("Whisky", isDirectory: true)
+                .appendingPathComponent("Downloads", isDirectory: true)
+            let cachedTarURL = downloadsDir.appendingPathComponent("Libraries.tar.gz")
+            let completeMarkerURL = cachedTarURL.appendingPathExtension("complete")
+
+            if fileManager.fileExists(atPath: cachedTarURL.path) {
+                try? fileManager.removeItem(at: cachedTarURL)
+                print("[WhiskyWineInstall] Cleared cached tar file")
+            }
+            if fileManager.fileExists(atPath: completeMarkerURL.path) {
+                try? fileManager.removeItem(at: completeMarkerURL)
+                print("[WhiskyWineInstall] Cleared complete marker file")
+            }
         }
     }
 }
