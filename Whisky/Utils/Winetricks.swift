@@ -80,9 +80,16 @@ class Winetricks {
         }
     }
 
-    static func parseVerbs() async -> [WinetricksCategory] {
-        // Grab the verbs file
+    static func parseVerbs() async -> [WinetricksCategory]? {
+        let winetricksURL = WhiskyWineInstaller.libraryFolder.appending(path: "winetricks")
         let verbsURL = WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt")
+
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: winetricksURL.path(percentEncoded: false)),
+              fileManager.fileExists(atPath: verbsURL.path(percentEncoded: false)) else {
+            return nil
+        }
+
         let verbs: String = await { () async -> String in
             do {
                 let (data, _) = try await URLSession.shared.data(from: verbsURL)
@@ -92,21 +99,20 @@ class Winetricks {
             }
         }()
 
-        // Read the file line by line
+        guard !verbs.isEmpty else {
+            return nil
+        }
+
         let lines = verbs.components(separatedBy: "\n")
         var categories: [WinetricksCategory] = []
         var currentCategory: WinetricksCategory?
 
         for line in lines {
-            // Categories are label as "===== <name> ====="
             if line.starts(with: "=====") {
-                // If we have a current category, add it to the list
                 if let currentCategory = currentCategory {
                     categories.append(currentCategory)
                 }
 
-                // Create a new category
-                // Capitalize the first letter of the category name
                 let categoryName = line.replacingOccurrences(of: "=====", with: "").trimmingCharacters(in: .whitespaces)
                 if let cateogry = WinetricksCategories(rawValue: categoryName) {
                     currentCategory = WinetricksCategory(category: cateogry,
@@ -119,8 +125,6 @@ class Winetricks {
                     continue
                 }
 
-                // If we have a current category, add the verb to it
-                // Verbs eg. "3m_library               3M Cloud Library (3M Company, 2015) [downloadable]"
                 let verbName = line.components(separatedBy: " ")[0]
                 let verbDescription = line.replacingOccurrences(of: "\(verbName) ", with: "")
                     .trimmingCharacters(in: .whitespaces)
@@ -128,11 +132,10 @@ class Winetricks {
             }
         }
 
-        // Add the last category
         if let currentCategory = currentCategory {
             categories.append(currentCategory)
         }
 
-        return categories
+        return categories.isEmpty ? nil : categories
     }
 }

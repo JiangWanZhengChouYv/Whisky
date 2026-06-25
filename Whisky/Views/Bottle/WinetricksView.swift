@@ -23,6 +23,7 @@ struct WinetricksView: View {
     var bottle: Bottle
     @State private var winetricks: [WinetricksCategory]?
     @State private var selectedTrick: UUID?
+    @State private var isLoading = true
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -33,8 +34,13 @@ struct WinetricksView: View {
             }
             .padding(.bottom)
 
-            // Tabbed view
-            if let winetricks = winetricks {
+            if isLoading {
+                Spacer()
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.large)
+                Spacer()
+            } else if let winetricks = winetricks, !winetricks.isEmpty {
                 TabView {
                     ForEach(winetricks, id: \.category) { category in
                         Table(category.verbs, selection: $selectedTrick) {
@@ -47,44 +53,56 @@ struct WinetricksView: View {
                         }
                     }
                 }
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("create.cancel") {
-                            dismiss()
-                        }
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        Button("button.run") {
-                            guard let selectedTrick = selectedTrick else {
-                                return
-                            }
-
-                            let trick = winetricks.flatMap { $0.verbs }.first(where: { $0.id == selectedTrick })
-                            if let trickName = trick?.name {
-                                Task.detached {
-                                    await Winetricks.runCommand(command: trickName, bottle: bottle)
-                                }
-                            }
-                            dismiss()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                }
             } else {
                 Spacer()
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .controlSize(.large)
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 48))
+                        .foregroundColor(.secondary)
+                    Text("winetricks.error.title")
+                        .font(.headline)
+                    Text("winetricks.error.message")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
                 Spacer()
             }
         }
         .padding()
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("create.cancel") {
+                    dismiss()
+                }
+            }
+            if let winetricks = winetricks, !winetricks.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("button.run") {
+                        guard let selectedTrick = selectedTrick else {
+                            return
+                        }
+
+                        let trick = winetricks.flatMap { $0.verbs }.first(where: { $0.id == selectedTrick })
+                        if let trickName = trick?.name {
+                            Task.detached {
+                                await Winetricks.runCommand(command: trickName, bottle: bottle)
+                            }
+                        }
+                        dismiss()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+        }
         .onAppear {
             Task.detached {
                 let tricks = await Winetricks.parseVerbs()
 
                 await MainActor.run {
                     winetricks = tricks
+                    isLoading = false
                 }
             }
         }
