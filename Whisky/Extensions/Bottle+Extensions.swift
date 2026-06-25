@@ -34,31 +34,12 @@ extension Bottle {
 
     @MainActor
     func openTerminal() {
-        let whiskyCmdURL = Bundle.main.url(forResource: "WhiskyCmd", withExtension: nil)
-        guard whiskyCmdURL != nil else {
+        guard Bundle.main.url(forResource: "WhiskyCmd", withExtension: nil) != nil else {
             showRunError(message: String(localized: "WhiskyCmd not found in bundle."))
             return
         }
 
-        let envCommand = Wine.generateTerminalEnvironmentCommand(bottle: self)
-        let tempDir = FileManager.default.temporaryDirectory
-        let scriptName = "whisky-terminal-\(UUID().uuidString).sh"
-        let scriptURL = tempDir.appendingPathComponent(scriptName)
-
-        let scriptContent = """
-        #!/bin/sh
-        \(envCommand)
-        rm -f "\(scriptURL.path)"
-        $SHELL
-        """
-
-        do {
-            try scriptContent.write(to: scriptURL, atomically: true, encoding: .utf8)
-            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
-        } catch {
-            showRunError(message: String(localized: "Failed to create temporary script."))
-            return
-        }
+        guard let scriptURL = createTerminalScript() else { return }
 
         let escapedScriptPath = scriptURL.path
             .replacingOccurrences(of: "\"", with: "\\\"")
@@ -80,6 +61,31 @@ extension Bottle {
                 await self.showRunError(message: String(describing: description))
             }
         }
+    }
+
+    @MainActor
+    private func createTerminalScript() -> URL? {
+        let envCommand = Wine.generateTerminalEnvironmentCommand(bottle: self)
+        let tempDir = FileManager.default.temporaryDirectory
+        let scriptName = "whisky-terminal-\(UUID().uuidString).sh"
+        let scriptURL = tempDir.appendingPathComponent(scriptName)
+
+        let scriptContent = """
+        #!/bin/sh
+        \(envCommand)
+        rm -f "\(scriptURL.path)"
+        $SHELL
+        """
+
+        do {
+            try scriptContent.write(to: scriptURL, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+        } catch {
+            showRunError(message: String(localized: "Failed to create temporary script."))
+            return nil
+        }
+
+        return scriptURL
     }
 
     @discardableResult
