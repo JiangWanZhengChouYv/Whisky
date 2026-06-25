@@ -357,5 +357,3 @@ private extension WhiskyWineInstaller {
         }
     }
 }
-
-
