@@ -121,7 +121,13 @@ public class WhiskyWineInstaller {
         guard let wine64URL = findWine64(in: applicationFolder) else {
             print("[WhiskyWine Install] ERROR: wine64 not found in extracted contents")
             printDirectoryTree(at: applicationFolder, indent: 0)
-            return
+
+            let tree = directoryTreeDescription(at: applicationFolder)
+            throw InstallationError.invalidInstallation(
+                "wine64 binary not found in extracted archive. " +
+                "The downloaded file may be corrupted. " +
+                "Directory structure:\n\(tree)"
+            )
         }
 
         print("[WhiskyWine Install] Found wine64 at: \(wine64URL.path)")
@@ -206,6 +212,35 @@ public class WhiskyWineInstaller {
         } catch {
             print("\(prefix)\(url.lastPathComponent)/ (error: \(error.localizedDescription))")
         }
+    }
+
+    private static func directoryTreeDescription(at url: URL) -> String {
+        let fileManager = FileManager.default
+        var result = ""
+
+        func buildTree(_ url: URL, indent: Int) {
+            let prefix = String(repeating: "  ", count: indent)
+            do {
+                let contents = try fileManager.contentsOfDirectory(atPath: url.path)
+                result += "\(prefix)\(url.lastPathComponent)/\n"
+                for item in contents.sorted() {
+                    let itemURL = url.appendingPathComponent(item)
+                    var isDir: ObjCBool = false
+                    if fileManager.fileExists(atPath: itemURL.path, isDirectory: &isDir) {
+                        if isDir.boolValue {
+                            buildTree(itemURL, indent: indent + 1)
+                        } else {
+                            result += "\(prefix)  \(item)\n"
+                        }
+                    }
+                }
+            } catch {
+                result += "\(prefix)\(url.lastPathComponent)/ (error: \(error.localizedDescription))\n"
+            }
+        }
+
+        buildTree(url, indent: 0)
+        return result
     }
 
     private static func makeBinariesExecutable() throws {

@@ -55,10 +55,9 @@ struct WhiskyWineInstallView: View {
                             installError = nil
                             installing = true
                             clearCachedDownload()
-                            if let index = path.firstIndex(of: .whiskyWineInstall) {
-                                path.removeLast(path.count - index)
+                            if path.last == .whiskyWineInstall {
+                                path.removeLast()
                             }
-                            path.append(.whiskyWineDownload)
                         }
                         .buttonStyle(.borderedProminent)
                     }
