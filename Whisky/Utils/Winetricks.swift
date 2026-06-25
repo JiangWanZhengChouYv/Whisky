@@ -29,6 +29,50 @@ enum WinetricksCategories: String {
     case settings
 }
 
+enum WinetricksError {
+    case missingWinetricksScript
+    case missingVerbsFile
+    case emptyVerbs
+    case parseFailed
+
+    var title: String {
+        switch self {
+        case .missingWinetricksScript:
+            return String(localized: "winetricks.error.missingScript.title")
+        case .missingVerbsFile:
+            return String(localized: "winetricks.error.missingVerbs.title")
+        case .emptyVerbs:
+            return String(localized: "winetricks.error.emptyVerbs.title")
+        case .parseFailed:
+            return String(localized: "winetricks.error.parseFailed.title")
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .missingWinetricksScript:
+            return String(localized: "winetricks.error.missingScript.message")
+        case .missingVerbsFile:
+            return String(localized: "winetricks.error.missingVerbs.message")
+        case .emptyVerbs:
+            return String(localized: "winetricks.error.emptyVerbs.message")
+        case .parseFailed:
+            return String(localized: "winetricks.error.parseFailed.message")
+        }
+    }
+
+    var filePath: String? {
+        switch self {
+        case .missingWinetricksScript:
+            return Winetricks.winetricksURL.path(percentEncoded: false)
+        case .missingVerbsFile:
+            return WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt").path(percentEncoded: false)
+        default:
+            return nil
+        }
+    }
+}
+
 struct WinetricksVerb: Identifiable {
     var id = UUID()
 
@@ -80,14 +124,16 @@ class Winetricks {
         }
     }
 
-    static func parseVerbs() async -> [WinetricksCategory]? {
+    static func parseVerbs() async -> (categories: [WinetricksCategory]?, error: WinetricksError?) {
         let winetricksURL = WhiskyWineInstaller.libraryFolder.appending(path: "winetricks")
         let verbsURL = WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt")
 
         let fileManager = FileManager.default
-        guard fileManager.fileExists(atPath: winetricksURL.path(percentEncoded: false)),
-              fileManager.fileExists(atPath: verbsURL.path(percentEncoded: false)) else {
-            return nil
+        guard fileManager.fileExists(atPath: winetricksURL.path(percentEncoded: false)) else {
+            return (nil, .missingWinetricksScript)
+        }
+        guard fileManager.fileExists(atPath: verbsURL.path(percentEncoded: false)) else {
+            return (nil, .missingVerbsFile)
         }
 
         let verbs: String = await { () async -> String in
@@ -100,7 +146,7 @@ class Winetricks {
         }()
 
         guard !verbs.isEmpty else {
-            return nil
+            return (nil, .emptyVerbs)
         }
 
         let lines = verbs.components(separatedBy: "\n")
@@ -136,6 +182,10 @@ class Winetricks {
             categories.append(currentCategory)
         }
 
-        return categories.isEmpty ? nil : categories
+        if categories.isEmpty {
+            return (nil, .parseFailed)
+        }
+
+        return (categories, nil)
     }
 }

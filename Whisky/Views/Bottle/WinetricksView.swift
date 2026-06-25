@@ -24,6 +24,7 @@ struct WinetricksView: View {
     @State private var winetricks: [WinetricksCategory]?
     @State private var selectedTrick: UUID?
     @State private var isLoading = true
+    @State private var error: WinetricksError?
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -53,6 +54,35 @@ struct WinetricksView: View {
                         }
                     }
                 }
+            } else if let error = error {
+                Spacer()
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.orange)
+                    Text(error.title)
+                        .font(.headline)
+                    Text(error.message)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    if let filePath = error.filePath {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("winetricks.error.filePath")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(filePath)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .textSelection(.enabled)
+                        }
+                        .padding(10)
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                }
+                .padding()
+                Spacer()
             } else {
                 Spacer()
                 VStack(spacing: 12) {
@@ -98,10 +128,11 @@ struct WinetricksView: View {
         }
         .onAppear {
             Task.detached {
-                let tricks = await Winetricks.parseVerbs()
+                let result = await Winetricks.parseVerbs()
 
                 await MainActor.run {
-                    winetricks = tricks
+                    winetricks = result.categories
+                    error = result.error
                     isLoading = false
                 }
             }

@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import AppKit
 import SemanticVersion
 import WhiskyKit
 
@@ -69,7 +70,14 @@ final class BottleVM: ObservableObject, @unchecked Sendable {
                 let nsError = error as NSError
                 print("Failed to create new bottle: \(error)")
                 print("Detailed error: domain=\(nsError.domain), code=\(nsError.code), userInfo=\(nsError.userInfo)")
-                // 即使失败也保留 bottle（不删除），持久化路径，方便用户排查
+                await MainActor.run {
+                    let alert = NSAlert()
+                    alert.messageText = "Failed to create bottle"
+                    alert.informativeText = error.localizedDescription
+                    alert.alertStyle = .critical
+                    alert.addButton(withTitle: String(localized: "button.ok"))
+                    alert.runModal()
+                }
                 if let bottle = bottleId {
                     await MainActor.run {
                         bottle.inFlight = false

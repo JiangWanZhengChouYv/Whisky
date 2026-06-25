@@ -41,15 +41,31 @@ extension Bottle {
         }
 
         let envCommand = Wine.generateTerminalEnvironmentCommand(bottle: self)
-        let escapedCommand = envCommand
-            .replacingOccurrences(of: "\"", with: "\\\"")
-            .replacingOccurrences(of: "\n", with: "; ")
-        let fullCommand = "\(escapedCommand); \\$SHELL"
+        let tempDir = FileManager.default.temporaryDirectory
+        let scriptName = "whisky-terminal-\(UUID().uuidString).sh"
+        let scriptURL = tempDir.appendingPathComponent(scriptName)
 
+        let scriptContent = """
+        #!/bin/sh
+        \(envCommand)
+        rm -f "\(scriptURL.path)"
+        $SHELL
+        """
+
+        do {
+            try scriptContent.write(to: scriptURL, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+        } catch {
+            showRunError(message: String(localized: "Failed to create temporary script."))
+            return
+        }
+
+        let escapedScriptPath = scriptURL.path
+            .replacingOccurrences(of: "\"", with: "\\\"")
         let script = """
         tell application "Terminal"
             activate
-            do script "\(fullCommand)"
+            do script "\(escapedScriptPath)"
         end tell
         """
 
