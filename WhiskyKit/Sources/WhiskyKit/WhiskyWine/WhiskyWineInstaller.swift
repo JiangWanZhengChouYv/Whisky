@@ -81,7 +81,45 @@ public class WhiskyWineInstaller {
     }
 
     public static func isWhiskyWineInstalled() -> Bool {
-        return whiskyWineVersion() != nil
+        let fileManager = FileManager.default
+        let wineBinPath = binFolder.appendingPathComponent("wine64")
+        let wineBinFallback = binFolder.appendingPathComponent("wine")
+        let wineLibFolder = libraryFolder
+            .appendingPathComponent("Wine")
+            .appendingPathComponent("lib")
+
+        let wineExists = fileManager.fileExists(atPath: wineBinPath.path) ||
+                         fileManager.fileExists(atPath: wineBinFallback.path)
+        let libExists = fileManager.fileExists(atPath: wineLibFolder.path)
+
+        guard wineExists && libExists else {
+            return false
+        }
+
+        let minSize: Int64 = 10 * 1024 * 1024
+        return directorySize(wineLibFolder) >= minSize
+    }
+
+    private static func directorySize(_ url: URL) -> Int64 {
+        let fileManager = FileManager.default
+        guard let enumerator = fileManager.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return 0
+        }
+
+        var totalSize: Int64 = 0
+        for case let fileURL as URL in enumerator {
+            do {
+                let resources = try fileURL.resourceValues(forKeys: [.fileSizeKey])
+                totalSize += Int64(resources.fileSize ?? 0)
+            } catch {
+                continue
+            }
+        }
+        return totalSize
     }
 
     public static func install(from: URL) -> Result<Void, Error> {
