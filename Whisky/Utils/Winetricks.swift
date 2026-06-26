@@ -110,7 +110,7 @@ struct WinetricksCategory {
 }
 
 class Winetricks {
-    static let winetricksURL: URL = WhiskyWineInstaller.libraryFolder
+    static let winetricksURL: URL = WhiskyWineInstaller.binFolder
         .appending(path: "winetricks")
 
     static func runCommand(command: String, bottle: Bottle) async {
@@ -149,7 +149,7 @@ class Winetricks {
     }
 
     static func parseVerbs() async -> (categories: [WinetricksCategory]?, error: WinetricksError?) {
-        let winetricksURL = WhiskyWineInstaller.libraryFolder.appending(path: "winetricks")
+        let winetricksURL = WhiskyWineInstaller.binFolder.appending(path: "winetricks")
         let verbsURL = WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt")
 
         let fileManager = FileManager.default

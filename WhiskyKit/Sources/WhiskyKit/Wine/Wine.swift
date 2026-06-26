@@ -244,10 +244,14 @@ public class Wine {
     private static func constructWineEnvironment(
         for bottle: Bottle, environment: [String: String] = [:]
     ) -> [String: String] {
+        let wineLibFolder = WhiskyWineInstaller.libraryFolder
+            .appendingPathComponent("Wine")
+            .appendingPathComponent("lib")
         var result: [String: String] = [
             "WINEPREFIX": bottle.url.path,
             "WINEDEBUG": "fixme-all",
-            "GST_DEBUG": "1"
+            "GST_DEBUG": "1",
+            "WINEDLLPATH": wineLibFolder.path
         ]
         bottle.settings.environmentVariables(wineEnv: &result)
         guard !environment.isEmpty else { return result }
