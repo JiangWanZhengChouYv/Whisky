@@ -43,6 +43,9 @@ extension Bottle {
 
         let escapedScriptPath = scriptURL.path
             .replacingOccurrences(of: "\"", with: "\\\"")
+
+        Logger.wineKit.info("Opening terminal with script: \(escapedScriptPath)")
+
         let script = """
         tell application "Terminal"
             activate
@@ -74,7 +77,7 @@ extension Bottle {
         #!/bin/sh
         \(envCommand)
         rm -f "\(scriptURL.path)"
-        $SHELL
+        exec $SHELL -i
         """
 
         do {

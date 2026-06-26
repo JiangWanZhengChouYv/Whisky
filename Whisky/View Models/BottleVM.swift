@@ -89,9 +89,15 @@ final class BottleVM: ObservableObject, @unchecked Sendable {
         print("Failed to create new bottle: \(error)")
         print("Detailed error: domain=\(nsError.domain), code=\(nsError.code), userInfo=\(nsError.userInfo)")
 
+        var detailedMessage = error.localizedDescription
+
+        if let wineError = error as? WineInterfaceError {
+            detailedMessage = wineError.errorDescription ?? error.localizedDescription
+        }
+
         let alert = NSAlert()
         alert.messageText = "Failed to create bottle"
-        alert.informativeText = error.localizedDescription
+        alert.informativeText = detailedMessage
         alert.alertStyle = .critical
         alert.addButton(withTitle: String(localized: "button.ok"))
         alert.runModal()

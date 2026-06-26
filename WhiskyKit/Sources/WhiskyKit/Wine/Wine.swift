@@ -171,6 +171,8 @@ public class Wine {
         _ args: [String], bottle: Bottle?, environment: [String: String] = [:]
     ) async throws -> String {
         var result: [String] = []
+        var errorOutput: [String] = []
+        var terminationStatus: Int32 = 0
         let fileHandle = try makeFileHandle()
         fileHandle.writeApplicaitonInfo()
         var environment = environment
@@ -182,14 +184,27 @@ public class Wine {
 
         for await output in try runWineProcess(args: args, environment: environment, fileHandle: fileHandle) {
             switch output {
-            case .started, .terminated:
+            case .started:
                 break
-            case .message(let message), .error(let message):
+            case .terminated(let process):
+                terminationStatus = process.terminationStatus
+            case .message(let message):
                 result.append(message)
+            case .error(let message):
+                errorOutput.append(message)
             }
         }
 
-        return result.joined()
+        let allOutput = (result + errorOutput).joined()
+        if terminationStatus != 0 {
+            throw WineInterfaceError.wineProcessFailed(
+                command: args.joined(separator: " "),
+                status: terminationStatus,
+                output: allOutput
+            )
+        }
+
+        return allOutput
     }
 
     public static func wineVersion() async throws -> String {
@@ -255,8 +270,18 @@ public class Wine {
     }
 }
 
-enum WineInterfaceError: Error {
+public enum WineInterfaceError: Error, LocalizedError {
     case invalidResponce
+    case wineProcessFailed(command: String, status: Int32, output: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidResponce:
+            return "Invalid response from Wine"
+        case .wineProcessFailed(let command, let status, let output):
+            return "Command '\(command)' failed with status \(status): \(output)"
+        }
+    }
 }
 
 enum RegistryType: String {

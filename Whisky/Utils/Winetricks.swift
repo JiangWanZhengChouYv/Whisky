@@ -51,9 +51,33 @@ enum WinetricksError {
     var message: String {
         switch self {
         case .missingWinetricksScript:
-            return String(localized: "winetricks.error.missingScript.message")
+            let scriptPath = Winetricks.winetricksURL.path(percentEncoded: false)
+            return """
+            The winetricks script is required to run Winetricks.
+
+            How to fix:
+            1. Download winetricks from: https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
+            2. Save the file to: \(scriptPath)
+            3. Make it executable: chmod +x "\(scriptPath)"
+            """
         case .missingVerbsFile:
-            return String(localized: "winetricks.error.missingVerbs.message")
+            let verbsPath = WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt").path(percentEncoded: false)
+            let scriptPath = Winetricks.winetricksURL.path(percentEncoded: false)
+            return """
+            The verbs.txt file is required to display available winetricks verbs.
+
+            How to fix (choose one):
+
+            Option 1 - Generate from winetricks script:
+            1. Ensure winetricks script exists at: \(scriptPath)
+            2. Run in Terminal: \(scriptPath) list | grep "^=" > "\(verbsPath)"
+            3. Edit the file to add category headers (lines starting with "=====")
+
+            Option 2 - Download pre-generated verbs.txt:
+            1. Visit: https://github.com/Whisky-Project/Whisky
+            2. Look for verbs.txt in the project resources
+            3. Save to: \(verbsPath)
+            """
         case .emptyVerbs:
             return String(localized: "winetricks.error.emptyVerbs.message")
         case .parseFailed:
