@@ -95,3 +95,7 @@ iOSInjectionProject/
 
 # Whisky App build output (235MB)
 Whisky.app/
+
+# Xcode Archive (build product)
+*.xcarchive
+Whisky.xcarchive/
