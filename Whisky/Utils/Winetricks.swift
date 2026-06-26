@@ -61,7 +61,7 @@ enum WinetricksError {
             3. Make it executable: chmod +x "\(scriptPath)"
             """
         case .missingVerbsFile:
-            let verbsPath = WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt").path(percentEncoded: false)
+            let verbsPath = Winetricks.verbsURL.path(percentEncoded: false)
             let scriptPath = Winetricks.winetricksURL.path(percentEncoded: false)
             return """
             The verbs.txt file is required to display available winetricks verbs.
@@ -90,7 +90,7 @@ enum WinetricksError {
         case .missingWinetricksScript:
             return Winetricks.winetricksURL.path(percentEncoded: false)
         case .missingVerbsFile:
-            return WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt").path(percentEncoded: false)
+            return Winetricks.verbsURL.path(percentEncoded: false)
         default:
             return nil
         }
@@ -110,8 +110,34 @@ struct WinetricksCategory {
 }
 
 class Winetricks {
-    static let winetricksURL: URL = WhiskyWineInstaller.binFolder
-        .appending(path: "winetricks")
+    static var winetricksURL: URL {
+        let fileManager = FileManager.default
+        let crossoverWinetricks = WhiskyWineInstaller.binFolder.appending(path: "winetricks")
+
+        switch WhiskyWineInstaller.currentMode {
+        case .whiskyWine:
+            return WhiskyWineInstaller.binFolder.appending(path: "winetricks")
+        case .crossover:
+            if fileManager.fileExists(atPath: crossoverWinetricks.path(percentEncoded: false)) {
+                return crossoverWinetricks
+            } else {
+                let whiskyWineBin = WhiskyWineInstaller.applicationFolder
+                    .appending(path: "Libraries")
+                    .appending(path: "Wine")
+                    .appending(path: "bin")
+                return whiskyWineBin.appending(path: "winetricks")
+            }
+        }
+    }
+
+    static var verbsURL: URL {
+        switch WhiskyWineInstaller.currentMode {
+        case .whiskyWine:
+            return WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt")
+        case .crossover:
+            return WhiskyWineInstaller.applicationFolder.appending(path: "verbs.txt")
+        }
+    }
 
     static func runCommand(command: String, bottle: Bottle) async {
         guard let resourcesURL = Bundle.main.url(forResource: "cabextract", withExtension: nil)?
@@ -149,9 +175,6 @@ class Winetricks {
     }
 
     static func parseVerbs() async -> (categories: [WinetricksCategory]?, error: WinetricksError?) {
-        let winetricksURL = WhiskyWineInstaller.binFolder.appending(path: "winetricks")
-        let verbsURL = WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt")
-
         let fileManager = FileManager.default
         guard fileManager.fileExists(atPath: winetricksURL.path(percentEncoded: false)) else {
             return (nil, .missingWinetricksScript)

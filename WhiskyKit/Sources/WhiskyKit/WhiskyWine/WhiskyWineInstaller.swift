@@ -20,6 +20,28 @@ import Foundation
 import SemanticVersion
 
 public class WhiskyWineInstaller {
+    public enum WineMode: String, Codable, CaseIterable {
+        case whiskyWine
+        case crossover
+    }
+
+    private static let wineModeKey = "WineMode"
+
+    public static var currentMode: WineMode {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: wineModeKey),
+                  let mode = try? JSONDecoder().decode(WineMode.self, from: data) else {
+                return .whiskyWine
+            }
+            return mode
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.standard.set(data, forKey: wineModeKey)
+            }
+        }
+    }
+
     /// Base URL for WhiskyWine files (hosted on GitHub Release assets)
     /// Replaces the original upstream server which is no longer active
     public static let whiskyWineBaseURL =
@@ -30,11 +52,33 @@ public class WhiskyWineInstaller {
         for: .applicationSupportDirectory, in: .userDomainMask
         )[0].appending(path: Bundle.whiskyBundleIdentifier)
 
-    /// The folder of all the libfrary files
-    public static let libraryFolder = applicationFolder.appending(path: "Libraries")
+    /// The folder of all the library files
+    public static var libraryFolder: URL {
+        switch currentMode {
+        case .whiskyWine:
+            return applicationFolder.appending(path: "Libraries")
+        case .crossover:
+            return URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver")
+        }
+    }
 
     /// URL to the installed `wine` `bin` directory
-    public static let binFolder: URL = libraryFolder.appending(path: "Wine").appending(path: "bin")
+    public static var binFolder: URL {
+        switch currentMode {
+        case .whiskyWine:
+            return libraryFolder.appending(path: "Wine").appending(path: "bin")
+        case .crossover:
+            return URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/bin")
+        }
+    }
+
+    public static func isCrossOverInstalled() -> Bool {
+        let fileManager = FileManager.default
+        let crossoverAppURL = URL(fileURLWithPath: "/Applications/CrossOver.app")
+        let wineBinURL = URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/bin/wine")
+        return fileManager.fileExists(atPath: crossoverAppURL.path) &&
+               fileManager.fileExists(atPath: wineBinURL.path)
+    }
 
     public static func isWhiskyWineInstalled() -> Bool {
         return whiskyWineVersion() != nil

@@ -21,11 +21,18 @@ import os.log
 
 public class Wine {
     /// URL to the installed `DXVK` folder
-    private static let dxvkFolder: URL = WhiskyWineInstaller.libraryFolder.appending(path: "DXVK")
-    /// Path to the `wine64` binary
-    public static let wineBinary: URL = WhiskyWineInstaller.binFolder.appending(path: "wine64")
+    private static var dxvkFolder: URL { WhiskyWineInstaller.libraryFolder.appending(path: "DXVK") }
+    /// Path to the `wine` binary
+    public static var wineBinary: URL {
+        switch WhiskyWineInstaller.currentMode {
+        case .whiskyWine:
+            return WhiskyWineInstaller.binFolder.appending(path: "wine64")
+        case .crossover:
+            return WhiskyWineInstaller.binFolder.appending(path: "wine")
+        }
+    }
     /// Parth to the `wineserver` binary
-    private static let wineserverBinary: URL = WhiskyWineInstaller.binFolder.appending(path: "wineserver")
+    private static var wineserverBinary: URL { WhiskyWineInstaller.binFolder.appending(path: "wineserver") }
 
     /// Run a process on a executable file given by the `executableURL`
     private static func runProcess(
@@ -124,19 +131,20 @@ public class Wine {
     }
 
     public static func generateTerminalEnvironmentCommand(bottle: Bottle) -> String {
+        let wineBinaryName = wineBinary.lastPathComponent
         var cmd = """
         export PATH=\"\(WhiskyWineInstaller.binFolder.path):$PATH\"
-        export WINE=\"wine64\"
-        alias wine=\"wine64\"
-        alias winecfg=\"wine64 winecfg\"
-        alias msiexec=\"wine64 msiexec\"
-        alias regedit=\"wine64 regedit\"
-        alias regsvr32=\"wine64 regsvr32\"
-        alias wineboot=\"wine64 wineboot\"
-        alias wineconsole=\"wine64 wineconsole\"
-        alias winedbg=\"wine64 winedbg\"
-        alias winefile=\"wine64 winefile\"
-        alias winepath=\"wine64 winepath\"
+        export WINE=\"\(wineBinaryName)\"
+        alias wine=\"\(wineBinaryName)\"
+        alias winecfg=\"\(wineBinaryName) winecfg\"
+        alias msiexec=\"\(wineBinaryName) msiexec\"
+        alias regedit=\"\(wineBinaryName) regedit\"
+        alias regsvr32=\"\(wineBinaryName) regsvr32\"
+        alias wineboot=\"\(wineBinaryName) wineboot\"
+        alias wineconsole=\"\(wineBinaryName) wineconsole\"
+        alias winedbg=\"\(wineBinaryName) winedbg\"
+        alias winefile=\"\(wineBinaryName) winefile\"
+        alias winepath=\"\(wineBinaryName) winepath\"
         """
 
         let env = constructWineEnvironment(for: bottle, environment: constructWineEnvironment(for: bottle))
