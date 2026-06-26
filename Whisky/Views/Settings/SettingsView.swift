@@ -79,6 +79,11 @@ struct SettingsView: View {
                     Label("settings.wine.crossover.not.installed", systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                 }
+
+                if wineMode == .whiskyWine && !WhiskyWineInstaller.isWhiskyWineInstalled() {
+                    Label("settings.wine.whiskywine.not.installed", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
             }
             Section("settings.updates") {
                 Toggle("settings.toggle.whisky.updates", isOn: $whiskyUpdate)
