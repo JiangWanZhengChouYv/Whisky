@@ -80,10 +80,12 @@ struct SettingsView: View {
                         .foregroundStyle(.orange)
                 }
 
-                if wineMode == .whiskyWine && !WhiskyWineInstaller.isWhiskyWineInstalled() {
-                    HStack {
+                if wineMode == .whiskyWine {
+                    if !WhiskyWineInstaller.isWhiskyWineInstalled() {
                         Label("settings.wine.whiskywine.not.installed", systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
+                    }
+                    HStack {
                         Spacer()
                         Button(String(localized: "settings.wine.reinstall")) {
                             NotificationCenter.default.post(name: Notification.Name("WhiskyWineReinstall"), object: nil)
