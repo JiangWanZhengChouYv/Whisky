@@ -29,6 +29,8 @@ struct SetupView: View {
     @State var tarLocation: URL = URL(fileURLWithPath: "")
     @Binding var showSetup: Bool
     var firstTime: Bool = true
+    var autoStartDownload: Bool = false
+    @State private var didAutoStart = false
 
     var body: some View {
         VStack {
@@ -49,5 +51,11 @@ struct SetupView: View {
         }
         .padding()
         .interactiveDismissDisabled()
+        .onAppear {
+            if autoStartDownload && !didAutoStart {
+                didAutoStart = true
+                path.append(.whiskyWineDownload)
+            }
+        }
     }
 }

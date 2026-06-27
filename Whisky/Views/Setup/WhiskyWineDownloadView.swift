@@ -196,10 +196,14 @@ final class WhiskyWineDownloadManager: NSObject, URLSessionDataDelegate {
         if fileManager.fileExists(atPath: cachedTarURL.path),
            fileManager.fileExists(atPath: completeMarkerURL.path) {
             let fileSize = (try? fileManager.attributesOfItem(atPath: cachedTarURL.path)[.size] as? Int64) ?? 0
-            if fileSize > 0 {
+            if fileSize > 0 && fileSize >= 50 * 1024 * 1024 {
                 print("[WhiskyWineDownload] Using cached tar file (\(fileSize) bytes)")
                 completionHandler(cachedTarURL)
                 return
+            } else if fileSize > 0 && fileSize < 50 * 1024 * 1024 {
+                print("[WhiskyWineDownload] Cache corrupted: file size \(fileSize) bytes is less than 50MB, cleaning cache...")
+                try? fileManager.removeItem(at: cachedTarURL)
+                try? fileManager.removeItem(at: completeMarkerURL)
             }
         }
 

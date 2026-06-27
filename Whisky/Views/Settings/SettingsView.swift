@@ -81,8 +81,16 @@ struct SettingsView: View {
                 }
 
                 if wineMode == .whiskyWine && !WhiskyWineInstaller.isWhiskyWineInstalled() {
-                    Label("settings.wine.whiskywine.not.installed", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                    HStack {
+                        Label("settings.wine.whiskywine.not.installed", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Spacer()
+                        Button(String(localized: "settings.wine.reinstall")) {
+                            NotificationCenter.default.post(name: Notification.Name("WhiskyWineReinstall"), object: nil)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
                 }
             }
             Section("settings.updates") {

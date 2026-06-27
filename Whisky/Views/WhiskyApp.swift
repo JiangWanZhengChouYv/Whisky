@@ -38,6 +38,9 @@ struct WhiskyApp: App {
             ContentView(showSetup: $showSetup)
                 .frame(minWidth: ViewWidth.large, minHeight: 316)
                 .environmentObject(BottleVM.shared)
+                .onReceive(NotificationCenter.default.publisher(for: Notification.Name("WhiskyWineReinstall"))) { _ in
+                    showSetup = true
+                }
                 .onAppear {
                     NSWindow.allowsAutomaticWindowTabbing = false
 
