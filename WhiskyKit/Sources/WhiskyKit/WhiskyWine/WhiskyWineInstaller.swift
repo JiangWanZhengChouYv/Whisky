@@ -167,6 +167,26 @@ public class WhiskyWineInstaller {
         }
     }
 
+    public static func clearDownloadCache() {
+        let fileManager = FileManager.default
+        if let supportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let downloadsDir = supportDir
+                .appendingPathComponent("Whisky", isDirectory: true)
+                .appendingPathComponent("Downloads", isDirectory: true)
+            let cachedTarURL = downloadsDir.appendingPathComponent("Libraries.tar.gz")
+            let completeMarkerURL = cachedTarURL.appendingPathExtension("complete")
+
+            if fileManager.fileExists(atPath: cachedTarURL.path) {
+                try? fileManager.removeItem(at: cachedTarURL)
+                print("[WhiskyWine] Cleared cached tar file")
+            }
+            if fileManager.fileExists(atPath: completeMarkerURL.path) {
+                try? fileManager.removeItem(at: completeMarkerURL)
+                print("[WhiskyWine] Cleared complete marker file")
+            }
+        }
+    }
+
     public static func shouldUpdateWhiskyWine() async -> (Bool, SemanticVersion) {
         let versionPlistURL = whiskyWineBaseURL + "WhiskyWineVersion.plist"
         let localVersion = whiskyWineVersion()
