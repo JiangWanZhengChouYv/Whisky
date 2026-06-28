@@ -46,11 +46,15 @@ struct WhiskyWineInstallView: View {
                             .resizable()
                             .frame(width: 80, height: 80)
                             .foregroundStyle(.red)
-                        Text(errorMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                        ScrollView {
+                            Text(errorMessage)
+                                .font(.subheadline)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(nil)
+                        }
+                        .frame(maxHeight: 60)
+                        .padding(.horizontal)
                         Button("重试") {
                             WhiskyWineInstaller.clearDownloadCache()
                             if path.last == .whiskyWineInstall {

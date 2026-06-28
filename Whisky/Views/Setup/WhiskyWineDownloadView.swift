@@ -41,10 +41,16 @@ struct WhiskyWineDownloadView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                        .padding(.top, 8)
+                    ScrollView {
+                        Text(errorMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(nil)
+                    }
+                    .frame(maxHeight: 60)
+                    .padding(.top, 8)
+                    .padding(.horizontal)
                 }
                 Spacer()
                 VStack {
