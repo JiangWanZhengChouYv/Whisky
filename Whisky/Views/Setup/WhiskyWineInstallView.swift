@@ -54,13 +54,13 @@ struct WhiskyWineInstallView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                         HStack(spacing: 12) {
-                            Button("install.viewLog") {
+                            Button("查看日志") {
                                 WhiskyApp.showErrorLog(
-                                    title: String(localized: "install.errorTitle"),
+                                    title: "安装错误",
                                     message: errorMessage
                                 )
                             }
-                            Button("button.retry") {
+                            Button("setup.retry") {
                                 WhiskyWineInstaller.clearDownloadCache()
                                 if path.last == .whiskyWineInstall {
                                     path.removeLast()

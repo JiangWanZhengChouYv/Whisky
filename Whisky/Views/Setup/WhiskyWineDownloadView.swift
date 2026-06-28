@@ -48,9 +48,9 @@ struct WhiskyWineDownloadView: View {
                             .lineLimit(2)
                             .truncationMode(.middle)
                             .multilineTextAlignment(.center)
-                        Button("install.viewLog") {
+                        Button("查看日志") {
                             WhiskyApp.showErrorLog(
-                                title: String(localized: "install.errorTitle"),
+                                title: "下载错误",
                                 message: errorMessage
                             )
                         }

@@ -235,7 +235,7 @@ struct ErrorLogView: View {
             .cornerRadius(6)
             HStack {
                 Spacer()
-                Button("button.close") {
+                Button("关闭") {
                     NSApp.keyWindow?.close()
                 }
                 .keyboardShortcut(.defaultAction)

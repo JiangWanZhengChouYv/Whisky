@@ -217,6 +217,19 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate, @unch
             return
         }
 
+        if totalBytesExpected > 0 && totalBytesWritten != totalBytesExpected {
+            let sizeError = NSError(
+                domain: "WhiskyWineDownload",
+                code: -2,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                    "Incomplete download: \(totalBytesWritten) of \(totalBytesExpected) bytes"
+                ]
+            )
+            handleDownloadFailure(sizeError)
+            return
+        }
+
         print("[WhiskyWineDownload] Download complete, saved to \(cachedTarURL.path) (\(totalBytesWritten) bytes)")
 
         let fileManager = FileManager.default
