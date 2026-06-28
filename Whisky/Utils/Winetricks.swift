@@ -111,32 +111,11 @@ struct WinetricksCategory {
 
 class Winetricks {
     static var winetricksURL: URL {
-        let fileManager = FileManager.default
-        let crossoverWinetricks = WhiskyWineInstaller.binFolder.appending(path: "winetricks")
-
-        switch WhiskyWineInstaller.currentMode {
-        case .whiskyWine:
-            return WhiskyWineInstaller.binFolder.appending(path: "winetricks")
-        case .crossover:
-            if fileManager.fileExists(atPath: crossoverWinetricks.path(percentEncoded: false)) {
-                return crossoverWinetricks
-            } else {
-                let whiskyWineBin = WhiskyWineInstaller.applicationFolder
-                    .appending(path: "Libraries")
-                    .appending(path: "Wine")
-                    .appending(path: "bin")
-                return whiskyWineBin.appending(path: "winetricks")
-            }
-        }
+        WhiskyWineInstaller.winetricksURL
     }
 
     static var verbsURL: URL {
-        switch WhiskyWineInstaller.currentMode {
-        case .whiskyWine:
-            return WhiskyWineInstaller.libraryFolder.appending(path: "verbs.txt")
-        case .crossover:
-            return WhiskyWineInstaller.applicationFolder.appending(path: "verbs.txt")
-        }
+        WhiskyWineInstaller.verbsURL
     }
 
     static func runCommand(command: String, bottle: Bottle) async {

@@ -255,11 +255,17 @@ public class Wine {
         let wineLibFolder = WhiskyWineInstaller.libraryFolder
             .appendingPathComponent("Wine")
             .appendingPathComponent("lib")
+        let wineDllPath = wineLibFolder.appendingPathComponent("wine")
+        let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
+        let wineBinPath = WhiskyWineInstaller.binFolder.path
+        let currentPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
         var result: [String: String] = [
             "WINEPREFIX": bottle.url.path,
             "WINEDEBUG": "fixme-all",
             "GST_DEBUG": "1",
-            "WINEDLLPATH": wineLibFolder.path
+            "WINEDLLPATH": wineDllPath.path,
+            "WINEDATADIR": wineDataDir.path,
+            "PATH": "\(wineBinPath):\(currentPath)"
         ]
         bottle.settings.environmentVariables(wineEnv: &result)
         guard !environment.isEmpty else { return result }
@@ -271,10 +277,20 @@ public class Wine {
     private static func constructWineServerEnvironment(
         for bottle: Bottle, environment: [String: String] = [:]
     ) -> [String: String] {
+        let wineLibFolder = WhiskyWineInstaller.libraryFolder
+            .appendingPathComponent("Wine")
+            .appendingPathComponent("lib")
+        let wineDllPath = wineLibFolder.appendingPathComponent("wine")
+        let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
+        let wineBinPath = WhiskyWineInstaller.binFolder.path
+        let currentPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
         var result: [String: String] = [
             "WINEPREFIX": bottle.url.path,
             "WINEDEBUG": "fixme-all",
-            "GST_DEBUG": "1"
+            "GST_DEBUG": "1",
+            "WINEDLLPATH": wineDllPath.path,
+            "WINEDATADIR": wineDataDir.path,
+            "PATH": "\(wineBinPath):\(currentPath)"
         ]
         guard !environment.isEmpty else { return result }
         result.merge(environment, uniquingKeysWith: { $1 })
@@ -296,12 +312,6 @@ public enum WineInterfaceError: Error, LocalizedError {
     }
 }
 
-enum RegistryType: String {
-    case binary = "REG_BINARY"
-    case dword = "REG_DWORD"
-    case qword = "REG_QWORD"
-    case string = "REG_SZ"
-}
 extension Wine {
     public static let logsFolder = FileManager.default.urls(
         for: .libraryDirectory, in: .userDomainMask
@@ -316,122 +326,5 @@ extension Wine {
         let fileURL = Self.logsFolder.appending(path: dateString).appendingPathExtension("log")
         try "".write(to: fileURL, atomically: true, encoding: .utf8)
         return try FileHandle(forWritingTo: fileURL)
-    }
-}
-
-extension Wine {
-    private enum RegistryKey: String {
-        case currentVersion = #"HKLM\Software\Microsoft\Windows NT\CurrentVersion"#
-        case macDriver = #"HKCU\Software\Wine\Mac Driver"#
-        case desktop = #"HKCU\Control Panel\Desktop"#
-    }
-
-    private static func addRegistryKey(
-        bottle: Bottle, key: String, name: String, data: String, type: RegistryType
-    ) async throws {
-        try await runWine(
-            ["reg", "add", key, "-v", name, "-t", type.rawValue, "-d", data, "-f"],
-            bottle: bottle
-        )
-    }
-
-    private static func queryRegistryKey(
-        bottle: Bottle, key: String, name: String, type: RegistryType
-    ) async throws -> String? {
-        let output = try await runWine(["reg", "query", key, "-v", name], bottle: bottle)
-        let lines = output.split(omittingEmptySubsequences: true, whereSeparator: \.isNewline)
-
-        guard let line = lines.first(where: { $0.contains(type.rawValue) }) else { return nil }
-        let array = line.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
-        guard let value = array.last else { return nil }
-        return String(value)
-    }
-
-    public static func changeBuildVersion(bottle: Bottle, version: Int) async throws {
-        try await addRegistryKey(bottle: bottle, key: RegistryKey.currentVersion.rawValue,
-                                name: "CurrentBuild", data: "\(version)", type: .string)
-        try await addRegistryKey(bottle: bottle, key: RegistryKey.currentVersion.rawValue,
-                                name: "CurrentBuildNumber", data: "\(version)", type: .string)
-    }
-
-    public static func winVersion(bottle: Bottle) async throws -> WinVersion {
-        let output = try await Wine.runWine(["winecfg", "-v"], bottle: bottle)
-        let lines = output.split(whereSeparator: \.isNewline)
-
-        if let lastLine = lines.last {
-            let winString = String(lastLine)
-
-            if let version = WinVersion(rawValue: winString) {
-                return version
-            }
-        }
-
-        throw WineInterfaceError.invalidResponce
-    }
-
-    public static func buildVersion(bottle: Bottle) async throws -> String? {
-        return try await Wine.queryRegistryKey(
-            bottle: bottle, key: RegistryKey.currentVersion.rawValue,
-            name: "CurrentBuild", type: .string
-        )
-    }
-
-    public static func retinaMode(bottle: Bottle) async throws -> Bool {
-        let values: Set<String> = ["y", "n"]
-        guard let output = try await Wine.queryRegistryKey(
-            bottle: bottle, key: RegistryKey.macDriver.rawValue, name: "RetinaMode", type: .string
-        ), values.contains(output) else {
-            try await changeRetinaMode(bottle: bottle, retinaMode: false)
-            return false
-        }
-        return output == "y"
-    }
-
-    public static func changeRetinaMode(bottle: Bottle, retinaMode: Bool) async throws {
-        try await Wine.addRegistryKey(
-            bottle: bottle, key: RegistryKey.macDriver.rawValue, name: "RetinaMode", data: retinaMode ? "y" : "n",
-            type: .string
-        )
-    }
-
-    public static func dpiResolution(bottle: Bottle) async throws -> Int? {
-        guard let output = try await Wine.queryRegistryKey(bottle: bottle, key: RegistryKey.desktop.rawValue,
-                                                     name: "LogPixels", type: .dword
-        ) else { return nil }
-
-        let noPrefix = output.replacingOccurrences(of: "0x", with: "")
-        let int = Int(noPrefix, radix: 16)
-        guard let int = int else { return nil }
-        return int
-    }
-
-    public static func changeDpiResolution(bottle: Bottle, dpi: Int) async throws {
-        try await Wine.addRegistryKey(
-            bottle: bottle, key: RegistryKey.desktop.rawValue, name: "LogPixels", data: String(dpi),
-            type: .dword
-        )
-    }
-
-    @discardableResult
-    public static func control(bottle: Bottle) async throws -> String {
-        return try await Wine.runWine(["control"], bottle: bottle)
-    }
-
-    @discardableResult
-    public static func regedit(bottle: Bottle) async throws -> String {
-        return try await Wine.runWine(["regedit"], bottle: bottle)
-    }
-
-    @discardableResult
-    public static func cfg(bottle: Bottle) async throws -> String {
-        return try await Wine.runWine(["winecfg"], bottle: bottle)
-    }
-    public static func wineboot(bottle: Bottle) async throws {
-        try await runWine(["wineboot", "-i"], bottle: bottle)
-    }
-
-    @discardableResult
-    public static func changeWinVersion(bottle: Bottle, win: WinVersion) async throws -> String {
-        return try await Wine.runWine(["winecfg", "-v", win.rawValue], bottle: bottle)
     }
 }

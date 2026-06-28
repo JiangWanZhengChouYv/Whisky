@@ -22,7 +22,6 @@ import WhiskyKit
 struct WhiskyWineInstallView: View {
     @State var installing: Bool = true
     @State private var installError: String?
-    @State private var installRetryCount = 0
     @Binding var tarLocation: URL
     @Binding var path: [SetupStage]
     @Binding var showSetup: Bool
@@ -53,10 +52,7 @@ struct WhiskyWineInstallView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                         Button("重试") {
-                            installRetryCount = 0
-                            installError = nil
-                            installing = true
-                            clearCachedDownload()
+                            WhiskyWineInstaller.clearDownloadCache()
                             if path.last == .whiskyWineInstall {
                                 path.removeLast()
                             }
@@ -76,7 +72,7 @@ struct WhiskyWineInstallView: View {
         .frame(width: 400, height: 200)
         .onAppear {
             Task {
-                let result = await WhiskyWineInstaller.install(from: tarLocation)
+                let result = await WhiskyWineInstaller.installWithRetries(from: tarLocation)
                 await handleInstallResult(result)
             }
         }
@@ -95,37 +91,9 @@ struct WhiskyWineInstallView: View {
             sleep(2)
             proceed()
         case .failure(let error):
-            if installRetryCount < 3 {
-                installRetryCount += 1
-                print("[WhiskyWineInstall] Install failed, retry \(installRetryCount)/3")
-                clearCachedDownload()
-                if path.last == .whiskyWineInstall {
-                    path.removeLast()
-                }
-            } else {
-                installing = false
-                installError = error.safeLocalizedDescription
-            }
+            installing = false
+            installError = error.safeLocalizedDescription
         }
     }
 
-    private func clearCachedDownload() {
-        let fileManager = FileManager.default
-        if let supportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-            let downloadsDir = supportDir
-                .appendingPathComponent("Whisky", isDirectory: true)
-                .appendingPathComponent("Downloads", isDirectory: true)
-            let cachedTarURL = downloadsDir.appendingPathComponent("Libraries.tar.gz")
-            let completeMarkerURL = cachedTarURL.appendingPathExtension("complete")
-
-            if fileManager.fileExists(atPath: cachedTarURL.path) {
-                try? fileManager.removeItem(at: cachedTarURL)
-                print("[WhiskyWineInstall] Cleared cached tar file")
-            }
-            if fileManager.fileExists(atPath: completeMarkerURL.path) {
-                try? fileManager.removeItem(at: completeMarkerURL)
-                print("[WhiskyWineInstall] Cleared complete marker file")
-            }
-        }
-    }
 }
