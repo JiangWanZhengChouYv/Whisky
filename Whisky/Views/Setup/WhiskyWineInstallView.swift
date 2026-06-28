@@ -46,22 +46,28 @@ struct WhiskyWineInstallView: View {
                             .resizable()
                             .frame(width: 80, height: 80)
                             .foregroundStyle(.red)
-                        ScrollView {
-                            Text(errorMessage)
-                                .font(.subheadline)
-                                .foregroundStyle(.red)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(nil)
-                        }
-                        .frame(maxHeight: 60)
-                        .padding(.horizontal)
-                        Button("重试") {
-                            WhiskyWineInstaller.clearDownloadCache()
-                            if path.last == .whiskyWineInstall {
-                                path.removeLast()
+                        Text(errorMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.red)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        HStack(spacing: 12) {
+                            Button("install.viewLog") {
+                                WhiskyApp.showErrorLog(
+                                    title: String(localized: "install.errorTitle"),
+                                    message: errorMessage
+                                )
                             }
+                            Button("button.retry") {
+                                WhiskyWineInstaller.clearDownloadCache()
+                                if path.last == .whiskyWineInstall {
+                                    path.removeLast()
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
                         }
-                        .buttonStyle(.borderedProminent)
                     }
                 } else if installError == nil {
                     Image(systemName: "checkmark.circle")
@@ -73,7 +79,7 @@ struct WhiskyWineInstallView: View {
             }
             Spacer()
         }
-        .frame(width: 400, height: 200)
+        .frame(width: 400, height: 260)
         .onAppear {
             Task {
                 let result = await WhiskyWineInstaller.installWithRetries(from: tarLocation)

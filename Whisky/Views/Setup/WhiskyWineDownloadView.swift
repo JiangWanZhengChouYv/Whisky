@@ -41,14 +41,20 @@ struct WhiskyWineDownloadView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if let errorMessage = errorMessage {
-                    ScrollView {
+                    VStack(spacing: 8) {
                         Text(errorMessage)
                             .font(.subheadline)
                             .foregroundStyle(.red)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
                             .multilineTextAlignment(.center)
-                            .lineLimit(nil)
+                        Button("install.viewLog") {
+                            WhiskyApp.showErrorLog(
+                                title: String(localized: "install.errorTitle"),
+                                message: errorMessage
+                            )
+                        }
                     }
-                    .frame(maxHeight: 60)
                     .padding(.top, 8)
                     .padding(.horizontal)
                 }
@@ -77,7 +83,7 @@ struct WhiskyWineDownloadView: View {
             }
             Spacer()
         }
-        .frame(width: 400, height: 220)
+        .frame(width: 400, height: 280)
         .onAppear {
             Task {
                 await startDownload()

@@ -123,6 +123,18 @@ struct WhiskyApp: App {
         }
     }
 
+    static func showErrorLog(title: String, message: String) {
+        let view = ErrorLogView(title: title, message: message)
+        let hostingController = NSHostingController(rootView: view)
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = title
+        window.setContentSize(NSSize(width: 600, height: 400))
+        window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+        window.makeKeyAndOrderFront(nil)
+        window.center()
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     static func killBottles() {
         for bottle in BottleVM.shared.bottles {
             do {
@@ -200,5 +212,36 @@ struct WhiskyApp: App {
         } catch {
             return
         }
+    }
+}
+
+struct ErrorLogView: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+            ScrollView {
+                Text(message)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(8)
+            .background(Color(nsColor: .textBackgroundColor))
+            .cornerRadius(6)
+            HStack {
+                Spacer()
+                Button("button.close") {
+                    NSApp.keyWindow?.close()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
+        .frame(minWidth: 500, minHeight: 300)
     }
 }
