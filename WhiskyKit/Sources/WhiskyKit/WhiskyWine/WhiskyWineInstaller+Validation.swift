@@ -19,8 +19,23 @@
 import Foundation
 
 extension WhiskyWineInstaller {
+    private struct ValidationPaths {
+        let wineBinPath: URL
+        let wineLibFolder: URL
+        let wineUnixLibFolder: URL
+        let wineNlsFolder: URL
+        let wineFontsFolder: URL
+        let winetricksPath: URL
+    }
+
     static func validateInstallation() throws {
-        let fileManager = FileManager.default
+        let paths = buildValidationPaths()
+        printValidationDiagnostics(paths: paths)
+        try validateRequiredFilesExist(paths: paths)
+        verifyWineFunctionality()
+    }
+
+    private static func buildValidationPaths() -> ValidationPaths {
         let wineBinPath = binFolder.appendingPathComponent("wine64")
         let wineLibFolder = libraryFolder
             .appendingPathComponent("Wine")
@@ -36,7 +51,7 @@ extension WhiskyWineInstaller {
             .appendingPathComponent("fonts")
         let winetricksPath = binFolder.appendingPathComponent("winetricks")
 
-        printValidationDiagnostics(
+        return ValidationPaths(
             wineBinPath: wineBinPath,
             wineLibFolder: wineLibFolder,
             wineUnixLibFolder: wineUnixLibFolder,
@@ -44,42 +59,24 @@ extension WhiskyWineInstaller {
             wineFontsFolder: wineFontsFolder,
             winetricksPath: winetricksPath
         )
-
-        try validateRequiredFilesExist(
-            wineBinPath: wineBinPath,
-            wineLibFolder: wineLibFolder,
-            wineUnixLibFolder: wineUnixLibFolder,
-            wineNlsFolder: wineNlsFolder,
-            wineFontsFolder: wineFontsFolder,
-            winetricksPath: winetricksPath
-        )
-
-        verifyWineFunctionality()
     }
 
-    private static func printValidationDiagnostics(
-        wineBinPath: URL,
-        wineLibFolder: URL,
-        wineUnixLibFolder: URL,
-        wineNlsFolder: URL,
-        wineFontsFolder: URL,
-        winetricksPath: URL
-    ) {
+    private static func printValidationDiagnostics(paths: ValidationPaths) {
         let fileManager = FileManager.default
         print("  - libraryFolder path: \(libraryFolder.path)")
-        print("  - wineBinary path: \(wineBinPath.path)")
-        print("  - wineBinary exists: \(fileManager.fileExists(atPath: wineBinPath.path))")
-        print("  - wineLib path: \(wineLibFolder.path)")
-        print("  - wineLib exists: \(fileManager.fileExists(atPath: wineLibFolder.path))")
-        print("  - wineLib size: \(directorySize(wineLibFolder)) bytes")
-        print("  - wineUnixLib path: \(wineUnixLibFolder.path)")
-        print("  - wineUnixLib exists: \(fileManager.fileExists(atPath: wineUnixLibFolder.path))")
-        print("  - wineNls path: \(wineNlsFolder.path)")
-        print("  - wineNls exists: \(fileManager.fileExists(atPath: wineNlsFolder.path))")
-        print("  - wineFonts path: \(wineFontsFolder.path)")
-        print("  - wineFonts exists: \(fileManager.fileExists(atPath: wineFontsFolder.path))")
-        print("  - winetricks path: \(winetricksPath.path)")
-        print("  - winetricks exists: \(fileManager.fileExists(atPath: winetricksPath.path))")
+        print("  - wineBinary path: \(paths.wineBinPath.path)")
+        print("  - wineBinary exists: \(fileManager.fileExists(atPath: paths.wineBinPath.path))")
+        print("  - wineLib path: \(paths.wineLibFolder.path)")
+        print("  - wineLib exists: \(fileManager.fileExists(atPath: paths.wineLibFolder.path))")
+        print("  - wineLib size: \(directorySize(paths.wineLibFolder)) bytes")
+        print("  - wineUnixLib path: \(paths.wineUnixLibFolder.path)")
+        print("  - wineUnixLib exists: \(fileManager.fileExists(atPath: paths.wineUnixLibFolder.path))")
+        print("  - wineNls path: \(paths.wineNlsFolder.path)")
+        print("  - wineNls exists: \(fileManager.fileExists(atPath: paths.wineNlsFolder.path))")
+        print("  - wineFonts path: \(paths.wineFontsFolder.path)")
+        print("  - wineFonts exists: \(fileManager.fileExists(atPath: paths.wineFontsFolder.path))")
+        print("  - winetricks path: \(paths.winetricksPath.path)")
+        print("  - winetricks exists: \(fileManager.fileExists(atPath: paths.winetricksPath.path))")
 
         let versionPlistURL = libraryFolder
             .appendingPathComponent("WhiskyWineVersion")
@@ -89,78 +86,77 @@ extension WhiskyWineInstaller {
         print("  - whiskyWineVersion result: \(String(describing: whiskyWineVersion()))")
     }
 
-    private static func validateRequiredFilesExist(
-        wineBinPath: URL,
-        wineLibFolder: URL,
-        wineUnixLibFolder: URL,
-        wineNlsFolder: URL,
-        wineFontsFolder: URL,
-        winetricksPath: URL
-    ) throws {
+    private static func validateRequiredFilesExist(paths: ValidationPaths) throws {
+        try validateWineBinExists(path: paths.wineBinPath)
+        try validateWineLibFolder(path: paths.wineLibFolder)
+        try validateWineUnixLibFolder(path: paths.wineUnixLibFolder)
+        try validateWineNlsFolder(path: paths.wineNlsFolder)
+        try validateWineFontsFolder(path: paths.wineFontsFolder)
+        validateWinetricksExists(path: paths.winetricksPath)
+        try validateVersionPlistExists()
+    }
+
+    private static func validateWineBinExists(path: URL) throws {
         let fileManager = FileManager.default
-
-        if !fileManager.fileExists(atPath: wineBinPath.path) {
-            let error = InstallationError.invalidInstallation(
-                "wineBinary not found at \(wineBinPath.path)"
-            )
-            print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
-            throw error
+        guard fileManager.fileExists(atPath: path.path) else {
+            throw validationError("wineBinary not found at \(path.path)")
         }
+    }
 
+    private static func validateWineLibFolder(path: URL) throws {
+        let fileManager = FileManager.default
         var isDir: ObjCBool = false
-        if !fileManager.fileExists(atPath: wineLibFolder.path, isDirectory: &isDir) || !isDir.boolValue {
-            let error = InstallationError.invalidInstallation(
-                "Wine lib directory not found at \(wineLibFolder.path)"
-            )
-            print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
-            throw error
+        guard fileManager.fileExists(atPath: path.path, isDirectory: &isDir), isDir.boolValue else {
+            throw validationError("Wine lib directory not found at \(path.path)")
         }
 
         let minSize: Int64 = 50 * 1024 * 1024
-        let libSize = directorySize(wineLibFolder)
-        if libSize < minSize {
-            let error = InstallationError.invalidInstallation(
+        let libSize = directorySize(path)
+        guard libSize >= minSize else {
+            throw validationError(
                 "Wine lib directory too small: \(libSize) bytes (expected >= \(minSize) bytes)"
             )
-            print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
-            throw error
         }
+    }
 
-        if !fileManager.fileExists(atPath: wineUnixLibFolder.path) {
-            let error = InstallationError.invalidInstallation(
-                "Wine x86_64-unix lib directory not found at \(wineUnixLibFolder.path)"
-            )
-            print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
-            throw error
+    private static func validateWineUnixLibFolder(path: URL) throws {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: path.path) else {
+            throw validationError("Wine x86_64-unix lib directory not found at \(path.path)")
         }
+    }
 
-        if !fileManager.fileExists(atPath: wineNlsFolder.path) {
-            let error = InstallationError.invalidInstallation(
-                "Wine NLS directory not found at \(wineNlsFolder.path)"
-            )
-            print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
-            throw error
+    private static func validateWineNlsFolder(path: URL) throws {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: path.path) else {
+            throw validationError("Wine NLS directory not found at \(path.path)")
         }
+    }
 
-        if !fileManager.fileExists(atPath: wineFontsFolder.path) {
-            let error = InstallationError.invalidInstallation(
-                "Wine fonts directory not found at \(wineFontsFolder.path)"
-            )
-            print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
-            throw error
+    private static func validateWineFontsFolder(path: URL) throws {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: path.path) else {
+            throw validationError("Wine fonts directory not found at \(path.path)")
         }
+    }
 
-        if !fileManager.fileExists(atPath: winetricksPath.path) {
-            print("[WhiskyWine Install] WARNING: winetricks script not found at \(winetricksPath.path)")
+    private static func validateWinetricksExists(path: URL) {
+        let fileManager = FileManager.default
+        if !fileManager.fileExists(atPath: path.path) {
+            print("[WhiskyWine Install] WARNING: winetricks script not found at \(path.path)")
         }
+    }
 
-        if whiskyWineVersion() == nil {
-            let error = InstallationError.invalidInstallation(
-                "WhiskyWineVersion.plist not found or invalid"
-            )
-            print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
-            throw error
+    private static func validateVersionPlistExists() throws {
+        guard whiskyWineVersion() != nil else {
+            throw validationError("WhiskyWineVersion.plist not found or invalid")
         }
+    }
+
+    private static func validationError(_ message: String) -> Error {
+        let error = InstallationError.invalidInstallation(message)
+        print("[WhiskyWine Install] VALIDATION FAILED: \(error.errorDescription ?? "unknown")")
+        return error
     }
 
     private static func verifyWineFunctionality() {

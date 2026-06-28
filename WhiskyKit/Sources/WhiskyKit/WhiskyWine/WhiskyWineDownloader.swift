@@ -75,7 +75,10 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate {
                 completionHandler(cachedTarURL)
                 return
             } else if fileSize > 0 && fileSize < 200 * 1024 * 1024 {
-                print("[WhiskyWineDownload] Cache corrupted: file size \(fileSize) bytes is less than 200MB, cleaning cache...")
+                print(
+                    "[WhiskyWineDownload] Cache corrupted: " +
+                    "file size \(fileSize) bytes is less than 200MB, cleaning cache..."
+                )
                 try? fileManager.removeItem(at: cachedTarURL)
                 try? fileManager.removeItem(at: completeMarkerURL)
             }

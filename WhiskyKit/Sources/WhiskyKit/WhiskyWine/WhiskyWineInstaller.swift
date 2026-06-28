@@ -215,7 +215,10 @@ public class WhiskyWineInstaller {
             }
         }
         print("[WhiskyWine Install] All \(maxRetries) attempts failed")
-        return .failure(lastError!)
+        guard let finalError = lastError else {
+            return .failure(InstallationError.invalidInstallation("Unknown installation error"))
+        }
+        return .failure(finalError)
     }
 
     public static func uninstall() {
