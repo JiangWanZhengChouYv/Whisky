@@ -167,9 +167,10 @@ public class WhiskyWineInstaller {
             if !fileManager.fileExists(atPath: applicationFolder.path) {
                 try fileManager.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
             } else {
-                // Recreate it
-                try fileManager.removeItem(at: applicationFolder)
-                try fileManager.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
+                let librariesFolder = applicationFolder.appending(path: "Libraries")
+                if fileManager.fileExists(atPath: librariesFolder.path) {
+                    try fileManager.removeItem(at: librariesFolder)
+                }
             }
 
             print("[WhiskyWine Install] Extracting tar to \(applicationFolder.path)")
