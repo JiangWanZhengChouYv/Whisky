@@ -67,6 +67,8 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate {
     public func start() {
         let fileManager = FileManager.default
 
+        migrateOldCacheIfNeeded()
+
         if fileManager.fileExists(atPath: cachedTarURL.path),
            fileManager.fileExists(atPath: completeMarkerURL.path) {
             let fileSize = (try? fileManager.attributesOfItem(atPath: cachedTarURL.path)[.size] as? Int64) ?? 0
@@ -107,6 +109,47 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate {
         let request = URLRequest(url: downloadURL)
         dataTask = session.dataTask(with: request)
         dataTask?.resume()
+    }
+
+    private func migrateOldCacheIfNeeded() {
+        let fileManager = FileManager.default
+        guard let supportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return
+        }
+
+        let oldDownloadsDir = supportDir
+            .appendingPathComponent("Whisky", isDirectory: true)
+            .appendingPathComponent("Downloads", isDirectory: true)
+        let oldCachedTarURL = oldDownloadsDir.appendingPathComponent("Libraries.tar.gz")
+        let oldCompleteMarkerURL = oldCachedTarURL.appendingPathExtension("complete")
+
+        guard fileManager.fileExists(atPath: oldCachedTarURL.path),
+              fileManager.fileExists(atPath: oldCompleteMarkerURL.path) else {
+            return
+        }
+
+        let oldFileSize = (try? fileManager.attributesOfItem(atPath: oldCachedTarURL.path)[.size] as? Int64) ?? 0
+        guard oldFileSize >= 200 * 1024 * 1024 else {
+            print("[WhiskyWineDownload] Old cache too small (\(oldFileSize) bytes), skipping migration")
+            return
+        }
+
+        guard !fileManager.fileExists(atPath: cachedTarURL.path) else {
+            print("[WhiskyWineDownload] New cache already exists, skipping migration")
+            return
+        }
+
+        print("[WhiskyWineDownload] Migrating old cache from \(oldCachedTarURL.path) to \(cachedTarURL.path)")
+        let newDownloadsDir = cachedTarURL.deletingLastPathComponent()
+        try? fileManager.createDirectory(at: newDownloadsDir, withIntermediateDirectories: true)
+
+        do {
+            try fileManager.copyItem(at: oldCachedTarURL, to: cachedTarURL)
+            try fileManager.copyItem(at: oldCompleteMarkerURL, to: completeMarkerURL)
+            print("[WhiskyWineDownload] Cache migration successful")
+        } catch {
+            print("[WhiskyWineDownload] Cache migration failed: \(error)")
+        }
     }
 
     // MARK: - URLSessionDataDelegate
