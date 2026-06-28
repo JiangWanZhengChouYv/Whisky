@@ -21,12 +21,12 @@ import Foundation
 /// Downloads WhiskyWine with resume support, auto-retry, and proxy disabled.
 /// Bypasses system proxy (127.0.0.1:7890 etc.) that can cause 503 / -1 bytes issues.
 /// Downloads directly to cache file (边下载边缓存).
-public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate {
+public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private let downloadURL: URL
-    private let totalBytesHandler: (Int64) -> Void
-    private let progressHandler: (Int64, Int64) -> Void
-    private let completionHandler: (URL) -> Void
-    private let errorHandler: (Error) -> Void
+    private let totalBytesHandler: @Sendable (Int64) -> Void
+    private let progressHandler: @Sendable (Int64, Int64) -> Void
+    private let completionHandler: @Sendable (URL) -> Void
+    private let errorHandler: @Sendable (Error) -> Void
 
     private var session: URLSession!
     private var dataTask: URLSessionDataTask?
@@ -51,10 +51,10 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate {
 
     public init(
         downloadURL: URL,
-        totalBytesHandler: @escaping (Int64) -> Void,
-        progressHandler: @escaping (Int64, Int64) -> Void,
-        completionHandler: @escaping (URL) -> Void,
-        errorHandler: @escaping (Error) -> Void
+        totalBytesHandler: @escaping @Sendable (Int64) -> Void,
+        progressHandler: @escaping @Sendable (Int64, Int64) -> Void,
+        completionHandler: @escaping @Sendable (URL) -> Void,
+        errorHandler: @escaping @Sendable (Error) -> Void
     ) {
         self.downloadURL = downloadURL
         self.totalBytesHandler = totalBytesHandler
@@ -220,7 +220,7 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate {
         print("[WhiskyWineDownload] Download complete, saved to \(cachedTarURL.path) (\(totalBytesWritten) bytes)")
 
         let fileManager = FileManager.default
-        try? fileManager.createFile(atPath: completeMarkerURL.path, contents: nil)
+        fileManager.createFile(atPath: completeMarkerURL.path, contents: nil)
         print("[WhiskyWineDownload] Created complete marker at \(completeMarkerURL.path)")
 
         completionHandler(cachedTarURL)
