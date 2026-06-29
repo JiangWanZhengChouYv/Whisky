@@ -24,3 +24,15 @@ file_header:
                       \/\/  You should have received a copy of the GNU General Public License along with Whisky\.
                       \/\/  If not, see https:\/\/www\.gnu\.org\/licenses\/\.
                       \/\/
+
+file_length:
+  warning: 600
+  error: 800
+
+type_body_length:
+  warning: 300
+  error: 450
+
+function_body_length:
+  warning: 60
+  error: 80
