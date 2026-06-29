@@ -74,7 +74,7 @@ struct PinView: View {
             }
             .labelStyle(.titleAndIcon)
         }
-        .onTapGesture(count: 2) {
+        .onTapGesture(count: 1) {
             runProgram()
         }
         .sheet(isPresented: $showRenameSheet) {
