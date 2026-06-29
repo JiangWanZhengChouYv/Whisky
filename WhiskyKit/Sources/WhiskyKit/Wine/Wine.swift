@@ -25,7 +25,7 @@ public class Wine {
     /// Path to the `wine` binary
     public static var wineBinary: URL {
         switch WhiskyWineInstaller.currentMode {
-        case .whiskyWine:
+        case .whiskyWine, .proton11, .proton10:
             return WhiskyWineInstaller.binFolder.appending(path: "wine64")
         case .crossover:
             return WhiskyWineInstaller.binFolder.appending(path: "wine")
@@ -252,9 +252,7 @@ public class Wine {
     private static func constructWineEnvironment(
         for bottle: Bottle, environment: [String: String] = [:]
     ) -> [String: String] {
-        let wineLibFolder = WhiskyWineInstaller.libraryFolder
-            .appendingPathComponent("Wine")
-            .appendingPathComponent("lib")
+        let wineLibFolder = WhiskyWineInstaller.libFolder
         let wineDllPath = wineLibFolder.appendingPathComponent("wine")
         let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
         let wineBinPath = WhiskyWineInstaller.binFolder.path
@@ -277,9 +275,7 @@ public class Wine {
     private static func constructWineServerEnvironment(
         for bottle: Bottle, environment: [String: String] = [:]
     ) -> [String: String] {
-        let wineLibFolder = WhiskyWineInstaller.libraryFolder
-            .appendingPathComponent("Wine")
-            .appendingPathComponent("lib")
+        let wineLibFolder = WhiskyWineInstaller.libFolder
         let wineDllPath = wineLibFolder.appendingPathComponent("wine")
         let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
         let wineBinPath = WhiskyWineInstaller.binFolder.path

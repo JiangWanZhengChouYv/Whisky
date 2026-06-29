@@ -14966,6 +14966,28 @@
         }
       }
     },
+    "settings.wine.proton.not.installed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton not installed, click \"Reinstall\" to download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton 未安装，点击「重新安装」下载"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton 未安裝，點擊「重新安裝」下載"
+          }
+        }
+      }
+    },
     "settings.wine.engine" : {
       "localizations" : {
         "ar" : {
@@ -15506,6 +15528,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "WhiskyWine（自己編譯）"
+          }
+        }
+      }
+    },
+    "settings.wine.mode.proton11" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton 11.0 (Gaming Mode)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton 11.0 (游戏模式)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton 11.0 (遊戲模式)"
+          }
+        }
+      }
+    },
+    "settings.wine.mode.proton10" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton 10.0 (Gaming Mode)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton 10.0 (游戏模式)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proton 10.0 (遊戲模式)"
           }
         }
       }

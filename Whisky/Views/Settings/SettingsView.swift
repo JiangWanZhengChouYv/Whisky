@@ -56,6 +56,8 @@ struct SettingsView: View {
             Section("settings.wine.engine") {
                 Picker("settings.wine.mode", selection: $wineMode) {
                     Text("settings.wine.mode.whiskywine").tag(WhiskyWineInstaller.WineMode.whiskyWine)
+                    Text("settings.wine.mode.proton11").tag(WhiskyWineInstaller.WineMode.proton11)
+                    Text("settings.wine.mode.proton10").tag(WhiskyWineInstaller.WineMode.proton10)
                     Text("settings.wine.mode.crossover").tag(WhiskyWineInstaller.WineMode.crossover)
                 }
                 .onChange(of: wineMode) { newMode in
@@ -83,6 +85,22 @@ struct SettingsView: View {
                 if wineMode == .whiskyWine {
                     if !WhiskyWineInstaller.isWhiskyWineInstalled() {
                         Label("settings.wine.whiskywine.not.installed", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                    HStack {
+                        Spacer()
+                        Button(String(localized: "settings.wine.reinstall")) {
+                            NotificationCenter.default.post(name: Notification.Name("WhiskyWineReinstall"), object: nil)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+
+                if wineMode == .proton11 || wineMode == .proton10 {
+                    if (wineMode == .proton11 && !WhiskyWineInstaller.isProton11Installed()) ||
+                       (wineMode == .proton10 && !WhiskyWineInstaller.isProton10Installed()) {
+                        Label("settings.wine.proton.not.installed", systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
                     }
                     HStack {

@@ -325,5 +325,31 @@ public struct BottleSettings: Codable, Equatable {
         if dxrEnabled {
             wineEnv.updateValue("1", forKey: "D3DM_SUPPORT_DXR")
         }
+
+        switch WhiskyWineInstaller.currentMode {
+        case .proton11, .proton10:
+            if wineEnv["WINEESYNC"] == nil && wineEnv["WINEMSYNC"] == nil {
+                wineEnv["WINEMSYNC"] = "1"
+                wineEnv["WINEESYNC"] = "1"
+            }
+
+            if dxvk && wineEnv["DXVK_ASYNC"] == nil {
+                wineEnv["DXVK_ASYNC"] = "1"
+            }
+
+            if wineEnv["RADV_PERFTEST"] == nil {
+                wineEnv["RADV_PERFTEST"] = "gpl"
+            }
+
+            if wineEnv["vblank_mode"] == nil {
+                wineEnv["vblank_mode"] = "0"
+            }
+
+            if wineEnv["mesa_glthread"] == nil {
+                wineEnv["mesa_glthread"] = "true"
+            }
+        case .whiskyWine, .crossover:
+            break
+        }
     }
 }

@@ -23,6 +23,7 @@ import Foundation
 /// Downloads directly to cache file (边下载边缓存).
 public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private let downloadURL: URL
+    private let cacheFileName: String
     private let totalBytesHandler: @Sendable (Int64) -> Void
     private let progressHandler: @Sendable (Int64, Int64) -> Void
     private let completionHandler: @Sendable (URL) -> Void
@@ -38,7 +39,7 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate, @unch
         let downloadsDir = WhiskyWineInstaller.applicationFolder
             .appendingPathComponent("Downloads", isDirectory: true)
         try? fileManager.createDirectory(at: downloadsDir, withIntermediateDirectories: true)
-        return downloadsDir.appendingPathComponent("Libraries.tar.gz")
+        return downloadsDir.appendingPathComponent(cacheFileName)
     }
 
     private var completeMarkerURL: URL {
@@ -51,12 +52,14 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate, @unch
 
     public init(
         downloadURL: URL,
+        cacheFileName: String = "Libraries.tar.gz",
         totalBytesHandler: @escaping @Sendable (Int64) -> Void,
         progressHandler: @escaping @Sendable (Int64, Int64) -> Void,
         completionHandler: @escaping @Sendable (URL) -> Void,
         errorHandler: @escaping @Sendable (Error) -> Void
     ) {
         self.downloadURL = downloadURL
+        self.cacheFileName = cacheFileName
         self.totalBytesHandler = totalBytesHandler
         self.progressHandler = progressHandler
         self.completionHandler = completionHandler
@@ -67,7 +70,9 @@ public final class WhiskyWineDownloader: NSObject, URLSessionDataDelegate, @unch
     public func start() {
         let fileManager = FileManager.default
 
-        migrateOldCacheIfNeeded()
+        if cacheFileName == "Libraries.tar.gz" {
+            migrateOldCacheIfNeeded()
+        }
 
         if fileManager.fileExists(atPath: cachedTarURL.path),
            fileManager.fileExists(atPath: completeMarkerURL.path) {
