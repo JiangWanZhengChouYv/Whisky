@@ -326,6 +326,10 @@ public struct BottleSettings: Codable, Equatable {
             wineEnv.updateValue("1", forKey: "D3DM_SUPPORT_DXR")
         }
 
+        applyProtonEnvironmentVariables(wineEnv: &wineEnv)
+    }
+
+    private func applyProtonEnvironmentVariables(wineEnv: inout [String: String]) {
         switch WhiskyWineInstaller.currentMode {
         case .proton11, .proton10:
             if wineEnv["WINEESYNC"] == nil && wineEnv["WINEMSYNC"] == nil {
