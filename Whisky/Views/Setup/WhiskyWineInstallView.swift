@@ -25,6 +25,7 @@ struct WhiskyWineInstallView: View {
     @Binding var tarLocation: URL
     @Binding var path: [SetupStage]
     @Binding var showSetup: Bool
+    var installMode: WhiskyWineInstaller.WineMode
 
     var body: some View {
         VStack {
@@ -81,8 +82,10 @@ struct WhiskyWineInstallView: View {
         }
         .frame(width: 400, height: 260)
         .onAppear {
+            let mode = installMode
+            let tarURL = tarLocation
             Task {
-                let result = await WhiskyWineInstaller.installWithRetries(from: tarLocation, mode: WhiskyWineInstaller.currentMode)
+                let result = await WhiskyWineInstaller.installWithRetries(from: tarURL, mode: mode)
                 await handleInstallResult(result)
             }
         }

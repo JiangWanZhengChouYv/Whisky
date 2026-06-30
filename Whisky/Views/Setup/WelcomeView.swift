@@ -22,10 +22,52 @@ import WhiskyKit
 struct WelcomeView: View {
     @State var rosettaInstalled: Bool?
     @State var whiskyWineInstalled: Bool?
+    @State var currentModeInstalled: Bool?
     @State var shouldCheckInstallStatus: Bool = false
     @Binding var path: [SetupStage]
     @Binding var showSetup: Bool
     var firstTime: Bool
+    @Binding var installMode: WhiskyWineInstaller.WineMode
+
+    private var currentMode: WhiskyWineInstaller.WineMode {
+        WhiskyWineInstaller.currentMode
+    }
+
+    private var showCurrentModeStatus: Bool {
+        currentMode != .whiskyWine
+    }
+
+    private var currentModeName: String {
+        switch currentMode {
+        case .whiskyWine:
+            return String(localized: "settings.wine.mode.whiskywine")
+        case .crossover:
+            return String(localized: "settings.wine.mode.crossover")
+        case .proton11:
+            return String(localized: "settings.wine.mode.proton11")
+        case .proton10:
+            return String(localized: "settings.wine.mode.proton10")
+        }
+    }
+
+    private var canProceed: Bool {
+        guard let rosettaInstalled = rosettaInstalled,
+              let whiskyWineInstalled = whiskyWineInstalled else {
+            return false
+        }
+        if !rosettaInstalled || !whiskyWineInstalled {
+            return false
+        }
+        if showCurrentModeStatus {
+            guard let currentModeInstalled = currentModeInstalled else {
+                return false
+            }
+            if !currentModeInstalled && !currentMode.isDownloadable {
+                return false
+            }
+        }
+        return true
+    }
 
     var body: some View {
         VStack {
@@ -56,6 +98,11 @@ struct WelcomeView: View {
                                   shouldCheckInstallStatus: $shouldCheckInstallStatus,
                                   showUninstall: true,
                                   name: "WhiskyWine")
+                if showCurrentModeStatus {
+                    InstallStatusView(isInstalled: $currentModeInstalled,
+                                      shouldCheckInstallStatus: $shouldCheckInstallStatus,
+                                      name: currentModeName)
+                }
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
@@ -76,29 +123,46 @@ struct WelcomeView: View {
                         .keyboardShortcut(.cancelAction)
                     }
                     Spacer()
-                    Button(rosettaInstalled && whiskyWineInstalled ? "setup.done" : "setup.next") {
+                    Button(canProceed ? "setup.done" : "setup.next") {
                         if !rosettaInstalled {
                             path.append(.rosetta)
                             return
                         }
 
                         if !whiskyWineInstalled {
+                            installMode = .whiskyWine
                             path.append(.whiskyWineDownload)
                             return
                         }
 
+                        if showCurrentModeStatus,
+                           let currentModeInstalled = currentModeInstalled,
+                           !currentModeInstalled {
+                            if currentMode.isDownloadable {
+                                installMode = currentMode
+                                path.append(.whiskyWineDownload)
+                                return
+                            } else {
+                                return
+                            }
+                        }
+
                         showSetup = false
                     }
+                    .disabled(!canProceed && !(whiskyWineInstalled == false))
                     .keyboardShortcut(.defaultAction)
                 }
             }
         }
-        .frame(width: 400, height: 200)
+        .frame(width: 400, height: showCurrentModeStatus ? 260 : 200)
     }
 
     func checkInstallStatus() {
         rosettaInstalled = Rosetta2.isRosettaInstalled
         whiskyWineInstalled = WhiskyWineInstaller.isWhiskyWineInstalled()
+        if showCurrentModeStatus {
+            currentModeInstalled = WhiskyWineInstaller.isInstalled(mode: currentMode)
+        }
     }
 }
 

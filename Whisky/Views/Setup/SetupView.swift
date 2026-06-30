@@ -17,6 +17,7 @@
 //
 
 import SwiftUI
+import WhiskyKit
 
 enum SetupStage {
     case rosetta
@@ -31,20 +32,21 @@ struct SetupView: View {
     var firstTime: Bool = true
     var autoStartDownload: Bool = false
     @State private var didAutoStart = false
+    @State var installMode: WhiskyWineInstaller.WineMode = WhiskyWineInstaller.currentMode
 
     var body: some View {
         VStack {
             NavigationStack(path: $path) {
-                WelcomeView(path: $path, showSetup: $showSetup, firstTime: firstTime)
+                WelcomeView(path: $path, showSetup: $showSetup, firstTime: firstTime, installMode: $installMode)
                     .navigationBarBackButtonHidden(true)
                     .navigationDestination(for: SetupStage.self) { stage in
                         switch stage {
                         case .rosetta:
                             RosettaView(path: $path, showSetup: $showSetup)
                         case .whiskyWineDownload:
-                            WhiskyWineDownloadView(tarLocation: $tarLocation, path: $path)
+                            WhiskyWineDownloadView(tarLocation: $tarLocation, path: $path, installMode: installMode)
                         case .whiskyWineInstall:
-                            WhiskyWineInstallView(tarLocation: $tarLocation, path: $path, showSetup: $showSetup)
+                            WhiskyWineInstallView(tarLocation: $tarLocation, path: $path, showSetup: $showSetup, installMode: installMode)
                         }
                     }
             }
@@ -54,6 +56,7 @@ struct SetupView: View {
         .onAppear {
             if autoStartDownload && !didAutoStart {
                 didAutoStart = true
+                installMode = WhiskyWineInstaller.currentMode
                 path.append(.whiskyWineDownload)
             }
         }

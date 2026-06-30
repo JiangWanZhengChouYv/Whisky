@@ -20,11 +20,20 @@ import Foundation
 import SemanticVersion
 
 public class WhiskyWineInstaller {
-    public enum WineMode: String, Codable, CaseIterable {
+    public enum WineMode: String, Codable, CaseIterable, Sendable {
         case whiskyWine
         case crossover
         case proton11
         case proton10
+
+        public var isDownloadable: Bool {
+            switch self {
+            case .whiskyWine, .proton11, .proton10:
+                return true
+            case .crossover:
+                return false
+            }
+        }
     }
 
     private static let wineModeKey = "WineMode"
@@ -82,7 +91,10 @@ public class WhiskyWineInstaller {
         case .whiskyWine:
             return applicationFolder.appending(path: "Libraries")
         case .crossover:
-            return URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver")
+            return crossOverAppURL()?.appendingPathComponent("Contents")
+                .appendingPathComponent("SharedSupport")
+                .appendingPathComponent("CrossOver")
+                ?? URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver")
         case .proton11:
             return applicationFolder.appending(path: "Libraries/Proton11")
         case .proton10:
@@ -96,7 +108,7 @@ public class WhiskyWineInstaller {
         case .whiskyWine:
             return libraryFolder.appending(path: "Wine").appending(path: "bin")
         case .crossover:
-            return URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/bin")
+            return libraryFolder.appending(path: "bin")
         case .proton11, .proton10:
             return libraryFolder.appending(path: "files").appending(path: "bin")
         }
@@ -108,7 +120,7 @@ public class WhiskyWineInstaller {
         case .whiskyWine:
             return libraryFolder.appending(path: "Wine").appending(path: "share")
         case .crossover:
-            return URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/share")
+            return libraryFolder.appending(path: "share")
         case .proton11, .proton10:
             return libraryFolder.appending(path: "files").appending(path: "share")
         }
@@ -120,7 +132,7 @@ public class WhiskyWineInstaller {
         case .whiskyWine:
             return libraryFolder.appending(path: "Wine").appending(path: "lib")
         case .crossover:
-            return URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/lib")
+            return libraryFolder.appending(path: "lib")
         case .proton11, .proton10:
             return libraryFolder.appending(path: "files").appending(path: "lib")
         }
@@ -157,32 +169,72 @@ public class WhiskyWineInstaller {
         }
     }
 
+    // MARK: - CrossOver Detection
+
+    private static let possibleCrossOverPaths = [
+        "/Applications/CrossOver.app",
+        "\(NSHomeDirectory())/Applications/CrossOver.app"
+    ]
+
     public static func isCrossOverInstalled() -> Bool {
         let fileManager = FileManager.default
-        let crossoverAppURL = URL(fileURLWithPath: "/Applications/CrossOver.app")
-        let wineBinURL = URL(fileURLWithPath: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/bin/wine")
-        return fileManager.fileExists(atPath: crossoverAppURL.path) &&
-               fileManager.fileExists(atPath: wineBinURL.path)
+        for appPath in possibleCrossOverPaths {
+            let crossoverAppURL = URL(fileURLWithPath: appPath)
+            let wineBinURL = URL(fileURLWithPath: appPath)
+                .appendingPathComponent("Contents")
+                .appendingPathComponent("SharedSupport")
+                .appendingPathComponent("CrossOver")
+                .appendingPathComponent("bin")
+                .appendingPathComponent("wine")
+            if fileManager.fileExists(atPath: crossoverAppURL.path) &&
+               fileManager.fileExists(atPath: wineBinURL.path) {
+                return true
+            }
+        }
+        return false
+    }
+
+    public static func crossOverAppURL() -> URL? {
+        let fileManager = FileManager.default
+        for appPath in possibleCrossOverPaths {
+            let crossoverAppURL = URL(fileURLWithPath: appPath)
+            if fileManager.fileExists(atPath: crossoverAppURL.path) {
+                return crossoverAppURL
+            }
+        }
+        return nil
+    }
+
+    // MARK: - WhiskyWine Detection
+
+    private static var whiskyWineLibraryFolder: URL {
+        applicationFolder.appending(path: "Libraries")
+    }
+
+    private static var whiskyWineBinFolder: URL {
+        whiskyWineLibraryFolder.appending(path: "Wine").appending(path: "bin")
+    }
+
+    private static var whiskyWineLibFolder: URL {
+        whiskyWineLibraryFolder.appending(path: "Wine").appending(path: "lib")
+    }
+
+    private static var whiskyWineShareFolder: URL {
+        whiskyWineLibraryFolder.appending(path: "Wine").appending(path: "share")
     }
 
     public static func isWhiskyWineInstalled() -> Bool {
-        guard currentMode == .whiskyWine else {
-            return false
-        }
-
         let fileManager = FileManager.default
-        let wineBinPath = binFolder.appendingPathComponent("wine64")
-        let wineBinFallback = binFolder.appendingPathComponent("wine")
-        let wineLibFolder = libraryFolder
-            .appendingPathComponent("Wine")
-            .appendingPathComponent("lib")
+        let wineBinPath = whiskyWineBinFolder.appendingPathComponent("wine64")
+        let wineBinFallback = whiskyWineBinFolder.appendingPathComponent("wine")
+        let wineLibFolder = whiskyWineLibFolder
         let wineUnixLibFolder = wineLibFolder
             .appendingPathComponent("wine")
             .appendingPathComponent("x86_64-unix")
-        let wineNlsFolder = shareFolder
+        let wineNlsFolder = whiskyWineShareFolder
             .appendingPathComponent("wine")
             .appendingPathComponent("nls")
-        let wineFontsFolder = shareFolder
+        let wineFontsFolder = whiskyWineShareFolder
             .appendingPathComponent("wine")
             .appendingPathComponent("fonts")
 
@@ -205,60 +257,55 @@ public class WhiskyWineInstaller {
         return whiskyWineVersion() != nil
     }
 
+    // MARK: - Proton Detection
+
+    private static func protonLibraryFolder(for mode: WineMode) -> URL {
+        switch mode {
+        case .proton11:
+            return applicationFolder.appending(path: "Libraries/Proton11")
+        case .proton10:
+            return applicationFolder.appending(path: "Libraries/Proton10")
+        default:
+            return applicationFolder.appending(path: "Libraries")
+        }
+    }
+
+    private static func protonBinFolder(for mode: WineMode) -> URL {
+        protonLibraryFolder(for: mode).appending(path: "files").appending(path: "bin")
+    }
+
+    private static func protonLibFolder(for mode: WineMode) -> URL {
+        protonLibraryFolder(for: mode).appending(path: "files").appending(path: "lib")
+    }
+
+    private static func protonShareFolder(for mode: WineMode) -> URL {
+        protonLibraryFolder(for: mode).appending(path: "files").appending(path: "share")
+    }
+
     public static func isProton11Installed() -> Bool {
-        guard currentMode == .proton11 else {
-            return false
-        }
-
-        let fileManager = FileManager.default
-        let wineBinPath = binFolder.appendingPathComponent("wine64")
-        let wineBinFallback = binFolder.appendingPathComponent("wine")
-        let wineLibFolder = libFolder
-        let wineUnixLibFolder = wineLibFolder
-            .appendingPathComponent("wine")
-            .appendingPathComponent("x86_64-unix")
-        let wineNlsFolder = shareFolder
-            .appendingPathComponent("wine")
-            .appendingPathComponent("nls")
-        let wineFontsFolder = shareFolder
-            .appendingPathComponent("wine")
-            .appendingPathComponent("fonts")
-
-        let wineExists = fileManager.fileExists(atPath: wineBinPath.path) ||
-                         fileManager.fileExists(atPath: wineBinFallback.path)
-        let libExists = fileManager.fileExists(atPath: wineLibFolder.path)
-        let unixLibExists = fileManager.fileExists(atPath: wineUnixLibFolder.path)
-        let nlsExists = fileManager.fileExists(atPath: wineNlsFolder.path)
-        let fontsExists = fileManager.fileExists(atPath: wineFontsFolder.path)
-
-        guard wineExists && libExists && unixLibExists && nlsExists && fontsExists else {
-            return false
-        }
-
-        let minSize: Int64 = 50 * 1024 * 1024
-        guard directorySize(wineLibFolder) >= minSize else {
-            return false
-        }
-
-        return protonVersion(mode: .proton11) != nil
+        isProtonInstalled(mode: .proton11)
     }
 
     public static func isProton10Installed() -> Bool {
-        guard currentMode == .proton10 else {
+        isProtonInstalled(mode: .proton10)
+    }
+
+    private static func isProtonInstalled(mode: WineMode) -> Bool {
+        guard mode == .proton11 || mode == .proton10 else {
             return false
         }
 
         let fileManager = FileManager.default
-        let wineBinPath = binFolder.appendingPathComponent("wine64")
-        let wineBinFallback = binFolder.appendingPathComponent("wine")
-        let wineLibFolder = libFolder
+        let wineBinPath = protonBinFolder(for: mode).appendingPathComponent("wine64")
+        let wineBinFallback = protonBinFolder(for: mode).appendingPathComponent("wine")
+        let wineLibFolder = protonLibFolder(for: mode)
         let wineUnixLibFolder = wineLibFolder
             .appendingPathComponent("wine")
             .appendingPathComponent("x86_64-unix")
-        let wineNlsFolder = shareFolder
+        let wineNlsFolder = protonShareFolder(for: mode)
             .appendingPathComponent("wine")
             .appendingPathComponent("nls")
-        let wineFontsFolder = shareFolder
+        let wineFontsFolder = protonShareFolder(for: mode)
             .appendingPathComponent("wine")
             .appendingPathComponent("fonts")
 
@@ -278,7 +325,7 @@ public class WhiskyWineInstaller {
             return false
         }
 
-        return protonVersion(mode: .proton10) != nil
+        return protonVersion(mode: mode) != nil
     }
 
     public static func isInstalled(mode: WineMode) -> Bool {
@@ -448,7 +495,7 @@ public class WhiskyWineInstaller {
 
     public static func whiskyWineVersion() -> SemanticVersion? {
         do {
-            let versionPlist = libraryFolder
+            let versionPlist = whiskyWineLibraryFolder
                 .appending(path: "WhiskyWineVersion")
                 .appendingPathExtension("plist")
 

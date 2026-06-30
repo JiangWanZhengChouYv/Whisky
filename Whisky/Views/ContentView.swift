@@ -103,6 +103,11 @@ struct ContentView: View {
 
             if !WhiskyWineInstaller.isWhiskyWineInstalled() {
                 showSetup = true
+            } else {
+                let currentMode = WhiskyWineInstaller.currentMode
+                if currentMode != .whiskyWine && !WhiskyWineInstaller.isInstalled(mode: currentMode) {
+                    showSetup = true
+                }
             }
             let task = Task.detached {
                 return await WhiskyWineInstaller.shouldUpdateWhiskyWine()
