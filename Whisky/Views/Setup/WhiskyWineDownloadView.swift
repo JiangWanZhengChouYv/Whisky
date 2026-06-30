@@ -104,8 +104,10 @@ struct WhiskyWineDownloadView: View {
         switch installMode {
         case .whiskyWine:
             cacheFileName = "Libraries.tar.gz"
-        case .proton11, .proton10:
-            cacheFileName = "Proton.tar.gz"
+        case .proton11:
+            cacheFileName = "Proton11.tar.gz"
+        case .proton10:
+            cacheFileName = "Proton10.tar.gz"
         case .crossover:
             cacheFileName = "Libraries.tar.gz"
         }

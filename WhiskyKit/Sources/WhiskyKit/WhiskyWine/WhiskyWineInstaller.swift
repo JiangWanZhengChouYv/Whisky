@@ -69,15 +69,18 @@ public class WhiskyWineInstaller {
     /// Returns the download URL for the specified Proton mode
     public static func protonDownloadURL(for mode: WineMode) -> URL? {
         let baseURL: String
+        let fileName: String
         switch mode {
         case .proton11:
             baseURL = proton11BaseURL
+            fileName = "Proton11.tar.gz"
         case .proton10:
             baseURL = proton10BaseURL
+            fileName = "Proton10.tar.gz"
         default:
             return nil
         }
-        return URL(string: baseURL + "Proton.tar.gz")
+        return URL(string: baseURL + fileName)
     }
 
     /// The Whisky application folder

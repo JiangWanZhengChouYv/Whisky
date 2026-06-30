@@ -28,11 +28,23 @@ public class Wine {
         case .whiskyWine, .proton11, .proton10:
             return WhiskyWineInstaller.binFolder.appending(path: "wine64")
         case .crossover:
-            return WhiskyWineInstaller.binFolder.appending(path: "wine")
+            return WhiskyWineInstaller.libFolder
+                .appendingPathComponent("wine")
+                .appendingPathComponent("x86_64-unix")
+                .appending(path: "wine")
         }
     }
     /// Parth to the `wineserver` binary
-    private static var wineserverBinary: URL { WhiskyWineInstaller.binFolder.appending(path: "wineserver") }
+    private static var wineserverBinary: URL {
+        switch WhiskyWineInstaller.currentMode {
+        case .whiskyWine, .proton11, .proton10:
+            return WhiskyWineInstaller.binFolder.appending(path: "wineserver")
+        case .crossover:
+            return WhiskyWineInstaller.libraryFolder
+                .appendingPathComponent("CrossOver-Hosted Application")
+                .appending(path: "wineserver")
+        }
+    }
 
     /// Run a process on a executable file given by the `executableURL`
     private static func runProcess(
@@ -132,8 +144,9 @@ public class Wine {
 
     public static func generateTerminalEnvironmentCommand(bottle: Bottle) -> String {
         let wineBinaryName = wineBinary.lastPathComponent
+        let wineDir = wineBinary.deletingLastPathComponent().path
         var cmd = """
-        export PATH=\"\(WhiskyWineInstaller.binFolder.path):$PATH\"
+        export PATH=\"\(wineDir):\(WhiskyWineInstaller.binFolder.path):$PATH\"
         export WINE=\"\(wineBinaryName)\"
         alias wine=\"\(wineBinaryName)\"
         alias winecfg=\"\(wineBinaryName) winecfg\"
@@ -188,6 +201,8 @@ public class Wine {
         if let bottle = bottle {
             fileHandle.writeInfo(for: bottle)
             environment = constructWineEnvironment(for: bottle, environment: environment)
+        } else {
+            environment = constructBaseWineEnvironment(environment: environment)
         }
 
         for await output in try runWineProcess(args: args, environment: environment, fileHandle: fileHandle) {
@@ -265,7 +280,38 @@ public class Wine {
             "WINEDATADIR": wineDataDir.path,
             "PATH": "\(wineBinPath):\(currentPath)"
         ]
+
+        if WhiskyWineInstaller.currentMode == .crossover {
+            result["CX_ROOT"] = WhiskyWineInstaller.libraryFolder.path
+        }
+
         bottle.settings.environmentVariables(wineEnv: &result)
+        guard !environment.isEmpty else { return result }
+        result.merge(environment, uniquingKeysWith: { $1 })
+        return result
+    }
+
+    /// Construct base wine environment without a bottle (for --version etc.)
+    private static func constructBaseWineEnvironment(
+        environment: [String: String] = [:]
+    ) -> [String: String] {
+        let wineLibFolder = WhiskyWineInstaller.libFolder
+        let wineDllPath = wineLibFolder.appendingPathComponent("wine")
+        let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
+        let wineBinPath = WhiskyWineInstaller.binFolder.path
+        let currentPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
+        var result: [String: String] = [
+            "WINEDEBUG": "fixme-all",
+            "GST_DEBUG": "1",
+            "WINEDLLPATH": wineDllPath.path,
+            "WINEDATADIR": wineDataDir.path,
+            "PATH": "\(wineBinPath):\(currentPath)"
+        ]
+
+        if WhiskyWineInstaller.currentMode == .crossover {
+            result["CX_ROOT"] = WhiskyWineInstaller.libraryFolder.path
+        }
+
         guard !environment.isEmpty else { return result }
         result.merge(environment, uniquingKeysWith: { $1 })
         return result
@@ -288,6 +334,11 @@ public class Wine {
             "WINEDATADIR": wineDataDir.path,
             "PATH": "\(wineBinPath):\(currentPath)"
         ]
+
+        if WhiskyWineInstaller.currentMode == .crossover {
+            result["CX_ROOT"] = WhiskyWineInstaller.libraryFolder.path
+        }
+
         guard !environment.isEmpty else { return result }
         result.merge(environment, uniquingKeysWith: { $1 })
         return result
