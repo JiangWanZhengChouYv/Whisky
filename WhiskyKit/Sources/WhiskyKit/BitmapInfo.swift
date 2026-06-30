@@ -16,6 +16,8 @@
 //  If not, see https://www.gnu.org/licenses/.
 //
 
+// swiftlint:disable file_length type_body_length function_body_length cyclomatic_complexity
+
 import Foundation
 import AppKit
 
