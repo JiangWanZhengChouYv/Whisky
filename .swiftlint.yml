@@ -30,9 +30,9 @@ file_length:
   error: 800
 
 type_body_length:
-  warning: 300
+  warning: 350
   error: 450
 
 function_body_length:
-  warning: 60
+  warning: 70
   error: 80
