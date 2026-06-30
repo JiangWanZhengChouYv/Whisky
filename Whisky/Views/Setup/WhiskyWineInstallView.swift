@@ -27,13 +27,43 @@ struct WhiskyWineInstallView: View {
     @Binding var showSetup: Bool
     var installMode: WhiskyWineInstaller.WineMode
 
+    private var titleText: String {
+        switch installMode {
+        case .whiskyWine:
+            return String(localized: "setup.whiskywine.install")
+        case .proton11:
+            return String(localized: "setup.install.proton11",
+                          defaultValue: "Installing ProtonWine 11.0")
+        case .proton10:
+            return String(localized: "setup.install.proton10",
+                          defaultValue: "Installing ProtonWine 10.0")
+        case .crossover:
+            return String(localized: "setup.whiskywine.install")
+        }
+    }
+
+    private var subtitleText: String {
+        switch installMode {
+        case .whiskyWine:
+            return String(localized: "setup.whiskywine.install.subtitle")
+        case .proton11:
+            return String(localized: "setup.install.proton11.subtitle",
+                          defaultValue: "This should only take a minute.")
+        case .proton10:
+            return String(localized: "setup.install.proton10.subtitle",
+                          defaultValue: "This should only take a minute.")
+        case .crossover:
+            return String(localized: "setup.whiskywine.install.subtitle")
+        }
+    }
+
     var body: some View {
         VStack {
             VStack {
-                Text("setup.whiskywine.install")
+                Text(titleText)
                     .font(.title)
                     .fontWeight(.bold)
-                Text("setup.whiskywine.install.subtitle")
+                Text(subtitleText)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()

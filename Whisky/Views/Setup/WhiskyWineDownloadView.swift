@@ -32,13 +32,43 @@ struct WhiskyWineDownloadView: View {
 
     @State private var downloadManager: WhiskyWineDownloader?
 
+    private var titleText: String {
+        switch installMode {
+        case .whiskyWine:
+            return String(localized: "setup.whiskywine.download")
+        case .proton11:
+            return String(localized: "setup.download.proton11",
+                          defaultValue: "Downloading ProtonWine 11.0")
+        case .proton10:
+            return String(localized: "setup.download.proton10",
+                          defaultValue: "Downloading ProtonWine 10.0")
+        case .crossover:
+            return String(localized: "setup.whiskywine.download")
+        }
+    }
+
+    private var subtitleText: String {
+        switch installMode {
+        case .whiskyWine:
+            return String(localized: "setup.whiskywine.download.subtitle")
+        case .proton11:
+            return String(localized: "setup.download.proton11.subtitle",
+                          defaultValue: "This may take a while.")
+        case .proton10:
+            return String(localized: "setup.download.proton10.subtitle",
+                          defaultValue: "This may take a while.")
+        case .crossover:
+            return String(localized: "setup.whiskywine.download.subtitle")
+        }
+    }
+
     var body: some View {
         VStack {
             VStack {
-                Text("setup.whiskywine.download")
+                Text(titleText)
                     .font(.title)
                     .fontWeight(.bold)
-                Text("setup.whiskywine.download.subtitle")
+                Text(subtitleText)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if let errorMessage = errorMessage {

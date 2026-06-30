@@ -141,35 +141,14 @@ public class WhiskyWineInstaller {
         }
     }
 
-    /// URL to the winetricks script
+    /// URL to the winetricks script (always from WhiskyWine)
     public static var winetricksURL: URL {
-        let fileManager = FileManager.default
-        let crossoverWinetricks = binFolder.appending(path: "winetricks")
-
-        switch currentMode {
-        case .whiskyWine, .proton11, .proton10:
-            return binFolder.appending(path: "winetricks")
-        case .crossover:
-            if fileManager.fileExists(atPath: crossoverWinetricks.path(percentEncoded: false)) {
-                return crossoverWinetricks
-            } else {
-                let whiskyWineBin = applicationFolder
-                    .appending(path: "Libraries")
-                    .appending(path: "Wine")
-                    .appending(path: "bin")
-                return whiskyWineBin.appending(path: "winetricks")
-            }
-        }
+        whiskyWineBinFolder.appending(path: "winetricks")
     }
 
-    /// URL to the verbs.txt file
+    /// URL to the verbs.txt file (always from WhiskyWine)
     public static var verbsURL: URL {
-        switch currentMode {
-        case .whiskyWine, .proton11, .proton10:
-            return shareFolder.appending(path: "verbs.txt")
-        case .crossover:
-            return applicationFolder.appending(path: "verbs.txt")
-        }
+        whiskyWineShareFolder.appending(path: "verbs.txt")
     }
 
     // MARK: - CrossOver Detection

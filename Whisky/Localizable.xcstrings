@@ -15543,13 +15543,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Proton 11.0 (游戏模式)"
+            "value" : "ProtonWine 11.0 (游戏模式)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Proton 11.0 (遊戲模式)"
+            "value" : "ProtonWine 11.0 (遊戲模式)"
           }
         }
       }
@@ -15559,7 +15559,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Proton 10.0 (Gaming Mode)"
+            "value" : "ProtonWine 10.0 (Gaming Mode)"
           }
         },
         "zh-Hans" : {
@@ -15571,7 +15571,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Proton 10.0 (遊戲模式)"
+            "value" : "ProtonWine 10.0 (遊戲模式)"
           }
         }
       }
