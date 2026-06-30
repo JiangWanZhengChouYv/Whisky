@@ -49,11 +49,11 @@ public class WhiskyWineInstaller {
     public static let whiskyWineBaseURL =
         "https://github.com/JiangWanZhengChouYv/Whisky/releases/download/whiskywine-v1/"
 
-    /// Base URL for Proton 11 files (placeholder)
+    /// Base URL for Proton 11 files (based on Gcenx wine-staging 11.10)
     public static let proton11BaseURL =
         "https://github.com/JiangWanZhengChouYv/Whisky/releases/download/proton11/"
 
-    /// Base URL for Proton 10 files (placeholder)
+    /// Base URL for Proton 10 files (based on Gcenx wine-staging 11.9)
     public static let proton10BaseURL =
         "https://github.com/JiangWanZhengChouYv/Whisky/releases/download/proton10/"
 
