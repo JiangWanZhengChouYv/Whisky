@@ -47,14 +47,25 @@ extension WhiskyWineInstaller {
             print("[Proton Install] Extracting tar to \(applicationFolder.path)")
             try Tar.untar(tarBall: url, toURL: applicationFolder)
 
-            let extractedFilesFolder = applicationFolder.appending(path: "files")
-            if fileManager.fileExists(atPath: extractedFilesFolder.path) {
-                try fileManager.createDirectory(at: protonFolder, withIntermediateDirectories: true)
-                let targetFilesFolder = protonFolder.appending(path: "files")
-                if fileManager.fileExists(atPath: targetFilesFolder.path) {
-                    try fileManager.removeItem(at: targetFilesFolder)
+            // Handle tar with root directory like Proton11/ or Proton10/
+            let tarRootFolder = applicationFolder.appending(path: mode.rawValue.capitalized)
+            if fileManager.fileExists(atPath: tarRootFolder.path) {
+                print("[Proton Install] Found tar root directory \(tarRootFolder.lastPathComponent), moving to Libraries/")
+                if fileManager.fileExists(atPath: protonFolder.path) {
+                    try fileManager.removeItem(at: protonFolder)
                 }
-                try fileManager.moveItem(at: extractedFilesFolder, to: targetFilesFolder)
+                try fileManager.moveItem(at: tarRootFolder, to: protonFolder)
+            } else {
+                // Handle flat tar with files/ directory directly
+                let extractedFilesFolder = applicationFolder.appending(path: "files")
+                if fileManager.fileExists(atPath: extractedFilesFolder.path) {
+                    try fileManager.createDirectory(at: protonFolder, withIntermediateDirectories: true)
+                    let targetFilesFolder = protonFolder.appending(path: "files")
+                    if fileManager.fileExists(atPath: targetFilesFolder.path) {
+                        try fileManager.removeItem(at: targetFilesFolder)
+                    }
+                    try fileManager.moveItem(at: extractedFilesFolder, to: targetFilesFolder)
+                }
             }
 
             let binFolder = protonFolder.appending(path: "files").appending(path: "bin")
