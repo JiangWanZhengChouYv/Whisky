@@ -82,7 +82,7 @@ struct WhiskyWineInstallView: View {
         .frame(width: 400, height: 260)
         .onAppear {
             Task {
-                let result = await WhiskyWineInstaller.installWithRetries(from: tarLocation)
+                let result = await WhiskyWineInstaller.installWithRetries(from: tarLocation, mode: WhiskyWineInstaller.currentMode)
                 await handleInstallResult(result)
             }
         }

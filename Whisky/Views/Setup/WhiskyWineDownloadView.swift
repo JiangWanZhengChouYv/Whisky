@@ -92,15 +92,27 @@ struct WhiskyWineDownloadView: View {
     }
 
     private func startDownload() async {
-        guard let url = URL(string: WhiskyWineInstaller.whiskyWineBaseURL + "Libraries.tar.gz") else {
+        let currentMode = WhiskyWineInstaller.currentMode
+        guard let url = WhiskyWineInstaller.downloadURL(for: currentMode) else {
             errorMessage = "Invalid download URL"
             return
         }
 
         startTime = Date()
 
+        let cacheFileName: String
+        switch currentMode {
+        case .whiskyWine:
+            cacheFileName = "Libraries.tar.gz"
+        case .proton11, .proton10:
+            cacheFileName = "Proton.tar.gz"
+        case .crossover:
+            cacheFileName = "Libraries.tar.gz"
+        }
+
         let manager = WhiskyWineDownloader(
             downloadURL: url,
+            cacheFileName: cacheFileName,
             totalBytesHandler: { [self] total in
                 if totalBytes == 0 { totalBytes = total }
             },

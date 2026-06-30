@@ -14971,7 +14971,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Proton not installed, click \"Reinstall\" to download"
+            "value" : "ProtonWine not installed, click \"Reinstall\" to download"
           }
         },
         "zh-Hans" : {
@@ -15537,7 +15537,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Proton 11.0 (Gaming Mode)"
+            "value" : "ProtonWine 11.0 (Gaming Mode)"
           }
         },
         "zh-Hans" : {
@@ -15565,13 +15565,57 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Proton 10.0 (游戏模式)"
+            "value" : "ProtonWine 10.0 (游戏模式)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Proton 10.0 (遊戲模式)"
+          }
+        }
+      }
+    },
+    "settings.wine.installed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安裝"
+          }
+        }
+      }
+    },
+    "settings.wine.not.installed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Installed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未安装"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未安裝"
           }
         }
       }

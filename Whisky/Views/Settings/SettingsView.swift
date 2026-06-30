@@ -30,6 +30,7 @@ struct SettingsView: View {
     @State private var showModeConfirmation = false
     @State private var pendingMode: WhiskyWineInstaller.WineMode?
     @State private var isLoadingVersion = false
+    @State private var installStatuses: [WhiskyWineInstaller.WineMode: Bool] = [:]
 
     var body: some View {
         Form {
@@ -77,32 +78,29 @@ struct SettingsView: View {
                     }
                 }
 
-                if wineMode == .crossover && !WhiskyWineInstaller.isCrossOverInstalled() {
-                    Label("settings.wine.crossover.not.installed", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                }
-
-                if wineMode == .whiskyWine {
-                    if !WhiskyWineInstaller.isWhiskyWineInstalled() {
-                        Label("settings.wine.whiskywine.not.installed", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                    }
-                    HStack {
-                        Spacer()
-                        Button(String(localized: "settings.wine.reinstall")) {
-                            NotificationCenter.default.post(name: Notification.Name("WhiskyWineReinstall"), object: nil)
+                VStack(spacing: 8) {
+                    ForEach([WhiskyWineInstaller.WineMode.whiskyWine, .proton11, .proton10, .crossover], id: \.self) { mode in
+                        HStack {
+                            Text(modeName(for: mode))
+                            Spacer()
+                            if let isInstalled = installStatuses[mode] {
+                                if isInstalled {
+                                    Label("settings.wine.installed", systemImage: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                } else {
+                                    Label("settings.wine.not.installed", systemImage: "questionmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                     }
                 }
+                .padding(.vertical, 4)
 
-                if wineMode == .proton11 || wineMode == .proton10 {
-                    if (wineMode == .proton11 && !WhiskyWineInstaller.isProton11Installed()) ||
-                       (wineMode == .proton10 && !WhiskyWineInstaller.isProton10Installed()) {
-                        Label("settings.wine.proton.not.installed", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                    }
+                if wineMode != .crossover {
                     HStack {
                         Spacer()
                         Button(String(localized: "settings.wine.reinstall")) {
@@ -123,6 +121,7 @@ struct SettingsView: View {
         .frame(width: ViewWidth.medium)
         .onAppear {
             loadWineVersion()
+            refreshInstallStatuses()
         }
         .alert("settings.wine.change.mode.title", isPresented: $showModeConfirmation) {
             Button("button.cancel", role: .cancel) {
@@ -133,6 +132,7 @@ struct SettingsView: View {
                 if let pendingMode = pendingMode {
                     WhiskyWineInstaller.currentMode = pendingMode
                     loadWineVersion()
+                    refreshInstallStatuses()
                 }
                 pendingMode = nil
             }
@@ -156,6 +156,32 @@ struct SettingsView: View {
                     isLoadingVersion = false
                 }
             }
+        }
+    }
+
+    private func refreshInstallStatuses() {
+        Task {
+            let modes: [WhiskyWineInstaller.WineMode] = [.whiskyWine, .proton11, .proton10, .crossover]
+            var statuses: [WhiskyWineInstaller.WineMode: Bool] = [:]
+            for mode in modes {
+                statuses[mode] = WhiskyWineInstaller.isInstalled(mode: mode)
+            }
+            await MainActor.run {
+                installStatuses = statuses
+            }
+        }
+    }
+
+    private func modeName(for mode: WhiskyWineInstaller.WineMode) -> String {
+        switch mode {
+        case .whiskyWine:
+            return String(localized: "settings.wine.mode.whiskywine")
+        case .proton11:
+            return String(localized: "settings.wine.mode.proton11")
+        case .proton10:
+            return String(localized: "settings.wine.mode.proton10")
+        case .crossover:
+            return String(localized: "settings.wine.mode.crossover")
         }
     }
 }

@@ -281,6 +281,32 @@ public class WhiskyWineInstaller {
         return protonVersion(mode: .proton10) != nil
     }
 
+    public static func isInstalled(mode: WineMode) -> Bool {
+        switch mode {
+        case .whiskyWine:
+            return isWhiskyWineInstalled()
+        case .proton11:
+            return isProton11Installed()
+        case .proton10:
+            return isProton10Installed()
+        case .crossover:
+            return isCrossOverInstalled()
+        }
+    }
+
+    public static func downloadURL(for mode: WineMode) -> URL? {
+        switch mode {
+        case .whiskyWine:
+            return URL(string: whiskyWineBaseURL + "Libraries.tar.gz")
+        case .proton11:
+            return protonDownloadURL(for: .proton11)
+        case .proton10:
+            return protonDownloadURL(for: .proton10)
+        case .crossover:
+            return nil
+        }
+    }
+
     public static func install(from: URL) -> Result<Void, Error> {
         do {
             let fileManager = FileManager.default
@@ -340,6 +366,36 @@ public class WhiskyWineInstaller {
             return .failure(InstallationError.invalidInstallation("Unknown installation error"))
         }
         return .failure(finalError)
+    }
+
+    public static func installWithRetries(from url: URL, mode: WineMode, maxRetries: Int = 3) async -> Result<Void, Error> {
+        switch mode {
+        case .whiskyWine:
+            return await installWithRetries(from: url, maxRetries: maxRetries)
+        case .proton11, .proton10:
+            var lastError: Error?
+            for attempt in 1...maxRetries {
+                print("[Proton Install] Attempt \(attempt)/\(maxRetries)")
+                let result = installProton(from: url, mode: mode)
+                switch result {
+                case .success:
+                    return .success(())
+                case .failure(let error):
+                    lastError = error
+                    if attempt < maxRetries {
+                        print("[Proton Install] Attempt \(attempt) failed, retrying...")
+                        clearDownloadCache()
+                    }
+                }
+            }
+            print("[Proton Install] All \(maxRetries) attempts failed")
+            guard let finalError = lastError else {
+                return .failure(InstallationError.invalidInstallation("Unknown installation error"))
+            }
+            return .failure(finalError)
+        case .crossover:
+            return .failure(InstallationError.invalidInstallation("CrossOver installation is not supported via this method"))
+        }
     }
 
     public static func uninstall() {
