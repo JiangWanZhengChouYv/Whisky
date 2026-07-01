@@ -22,6 +22,25 @@ import os.log
 public class Wine {
     /// URL to the installed `DXVK` folder
     private static var dxvkFolder: URL { WhiskyWineInstaller.libraryFolder.appending(path: "DXVK") }
+    /// Whether DXVK files are available
+    public static var isDXVKAvailable: Bool {
+        let fileManager = FileManager.default
+        let x64Folder = dxvkFolder.appending(path: "x64")
+        let x32Folder = dxvkFolder.appending(path: "x32")
+        
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: x64Folder.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            return false
+        }
+        guard fileManager.fileExists(atPath: x32Folder.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            return false
+        }
+        
+        guard let x64Contents = try? fileManager.contentsOfDirectory(atPath: x64Folder.path) else {
+            return false
+        }
+        return !x64Contents.filter { $0.lowercased().hasSuffix(".dll") }.isEmpty
+    }
     /// Path to the `wine` binary
     public static var wineBinary: URL {
         switch WhiskyWineInstaller.currentMode {
@@ -120,7 +139,11 @@ public class Wine {
         at url: URL, args: [String] = [], bottle: Bottle, environment: [String: String] = [:]
     ) async throws {
         if bottle.settings.dxvk {
-            try enableDXVK(bottle: bottle)
+            if isDXVKAvailable {
+                try enableDXVK(bottle: bottle)
+            } else {
+                print("[Wine] Warning: DXVK is enabled but DXVK files are not available")
+            }
         }
 
         for await _ in try Self.runWineProcess(
@@ -253,6 +276,9 @@ public class Wine {
     }
 
     public static func enableDXVK(bottle: Bottle) throws {
+        guard isDXVKAvailable else {
+            throw WineError.dxvkNotAvailable
+        }
         try FileManager.default.replaceDLLs(
             in: bottle.url.appending(path: "drive_c").appending(path: "windows").appending(path: "system32"),
             withContentsIn: Wine.dxvkFolder.appending(path: "x64")
@@ -407,6 +433,17 @@ public class Wine {
             .appendingPathComponent("libd3dshared.dylib")
         if FileManager.default.fileExists(atPath: d3dSharedPath.path) {
             env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] = d3dSharedPath.path
+        }
+    }
+}
+
+public enum WineError: Error, LocalizedError {
+    case dxvkNotAvailable
+
+    public var errorDescription: String? {
+        switch self {
+        case .dxvkNotAvailable:
+            return "DXVK files are not available. Please install DXVK first."
         }
     }
 }

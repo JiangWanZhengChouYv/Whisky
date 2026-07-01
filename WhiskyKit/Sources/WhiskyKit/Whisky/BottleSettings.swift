@@ -94,7 +94,7 @@ public struct BottleWineConfig: Codable, Equatable {
     var wineVersion: SemanticVersion = Self.defaultWineVersion
     var windowsVersion: WinVersion = .win10
     var enhancedSync: EnhancedSync = .msync
-    var avxEnabled: Bool = false
+    var avxEnabled: Bool = true
 
     public init() {}
 
@@ -104,7 +104,7 @@ public struct BottleWineConfig: Codable, Equatable {
         self.wineVersion = try container.decodeIfPresent(SemanticVersion.self, forKey: .wineVersion) ?? Self.defaultWineVersion
         self.windowsVersion = try container.decodeIfPresent(WinVersion.self, forKey: .windowsVersion) ?? .win10
         self.enhancedSync = try container.decodeIfPresent(EnhancedSync.self, forKey: .enhancedSync) ?? .msync
-        self.avxEnabled = try container.decodeIfPresent(Bool.self, forKey: .avxEnabled) ?? false
+        self.avxEnabled = try container.decodeIfPresent(Bool.self, forKey: .avxEnabled) ?? true
     }
     // swiftlint:enable line_length
 }
@@ -280,7 +280,7 @@ public struct BottleSettings: Codable, Equatable {
     // swiftlint:disable:next cyclomatic_complexity
     public func environmentVariables(wineEnv: inout [String: String]) {
         if dxvk {
-            wineEnv.updateValue("dxgi,d3d9,d3d10core,d3d11=n,b", forKey: "WINEDLLOVERRIDES")
+            wineEnv.updateValue("d3d10core,d3d11=n,b", forKey: "WINEDLLOVERRIDES")
             switch dxvkHud {
             case .full:
                 wineEnv.updateValue("full", forKey: "DXVK_HUD")
@@ -339,6 +339,14 @@ public struct BottleSettings: Codable, Equatable {
 
             if dxvk && wineEnv["DXVK_ASYNC"] == nil {
                 wineEnv["DXVK_ASYNC"] = "1"
+            }
+
+            if dxvk && wineEnv["DXVK_STATE_CACHE"] == nil {
+                wineEnv["DXVK_STATE_CACHE"] = "1"
+            }
+
+            if dxvk && wineEnv["DXVK_ENABLE_STATE_CACHE"] == nil {
+                wineEnv["DXVK_ENABLE_STATE_CACHE"] = "1"
             }
 
             if wineEnv["RADV_PERFTEST"] == nil {
