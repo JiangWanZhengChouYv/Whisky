@@ -31,6 +31,7 @@ struct SettingsView: View {
     @State private var pendingMode: WhiskyWineInstaller.WineMode?
     @State private var isLoadingVersion = false
     @State private var installStatuses: [WhiskyWineInstaller.WineMode: Bool] = [:]
+    @State private var dxvkRefreshCounter: Int = 0
 
     var body: some View {
         Form {
@@ -111,9 +112,10 @@ struct SettingsView: View {
                     }
                 }
             }
-            DXVKSettingsView(wineMode: wineMode) {
+            DXVKSettingsView(onInstalled: {
                 refreshInstallStatuses()
-            }
+                dxvkRefreshCounter += 1
+            }, refreshTrigger: dxvkRefreshCounter)
             Section("settings.updates") {
                 Toggle("settings.toggle.whisky.updates", isOn: $whiskyUpdate)
                 Toggle("settings.toggle.whiskywine.updates", isOn: $checkWhiskyWineUpdates)
@@ -125,6 +127,7 @@ struct SettingsView: View {
         .onAppear {
             loadWineVersion()
             refreshInstallStatuses()
+            dxvkRefreshCounter += 1
         }
         .alert("settings.wine.change.mode.title", isPresented: $showModeConfirmation) {
             Button("取消", role: .cancel) {
@@ -136,6 +139,7 @@ struct SettingsView: View {
                     WhiskyWineInstaller.currentMode = pendingMode
                     loadWineVersion()
                     refreshInstallStatuses()
+                    dxvkRefreshCounter += 1
                 }
                 pendingMode = nil
             }

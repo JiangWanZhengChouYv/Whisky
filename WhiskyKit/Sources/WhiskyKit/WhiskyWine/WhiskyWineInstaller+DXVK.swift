@@ -45,21 +45,28 @@ extension WhiskyWineInstaller {
     public static func isDXVKInstalled(mode: WineMode) -> Bool {
         let fileManager = FileManager.default
         let dxvkDir = dxvkFolder(for: mode)
+        print("[DXVK] Checking installation for mode \(mode.rawValue) at: \(dxvkDir.path)")
         let x64Dir = dxvkDir.appending(path: "x64")
         let x32Dir = dxvkDir.appending(path: "x32")
 
         var isDir: ObjCBool = false
         guard fileManager.fileExists(atPath: x64Dir.path, isDirectory: &isDir), isDir.boolValue else {
+            print("[DXVK] x64 directory not found, DXVK not installed")
             return false
         }
         guard fileManager.fileExists(atPath: x32Dir.path, isDirectory: &isDir), isDir.boolValue else {
+            print("[DXVK] x32 directory not found, DXVK not installed")
             return false
         }
 
         guard let x64Contents = try? fileManager.contentsOfDirectory(atPath: x64Dir.path) else {
+            print("[DXVK] Failed to read x64 directory contents")
             return false
         }
-        return !x64Contents.filter { $0.lowercased().hasSuffix(".dll") }.isEmpty
+        let dllFiles = x64Contents.filter { $0.lowercased().hasSuffix(".dll") }
+        let installed = !dllFiles.isEmpty
+        print("[DXVK] Mode \(mode.rawValue) DXVK installed: \(installed), DLL count: \(dllFiles.count)")
+        return installed
     }
 
     /// Install DXVK from a local tar file to the specified mode
@@ -71,8 +78,10 @@ extension WhiskyWineInstaller {
 
         let fileManager = FileManager.default
         let dxvkDir = dxvkFolder(for: mode)
+        print("[DXVK Install] Installing DXVK for mode \(mode.rawValue) to: \(dxvkDir.path)")
 
         if fileManager.fileExists(atPath: dxvkDir.path) {
+            print("[DXVK Install] Removing existing DXVK directory")
             try fileManager.removeItem(at: dxvkDir)
         }
 

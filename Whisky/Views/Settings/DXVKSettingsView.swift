@@ -20,8 +20,8 @@ import SwiftUI
 import WhiskyKit
 
 struct DXVKSettingsView: View {
-    let wineMode: WhiskyWineInstaller.WineMode
     var onInstalled: (() -> Void)?
+    var refreshTrigger: Int = 0
 
     @State private var isInstalled: Bool?
     @State private var isDXVKInstalling = false
@@ -30,6 +30,9 @@ struct DXVKSettingsView: View {
     @State private var dxvkCompletedBytes: Int64 = 0
     @State private var dxvkError: String?
 
+    private var currentMode: WhiskyWineInstaller.WineMode {
+        WhiskyWineInstaller.currentMode
+    }
     private var buttonText: String {
         if isDXVKInstalling {
             return "安装中..."
@@ -42,7 +45,7 @@ struct DXVKSettingsView: View {
 
     var body: some View {
         Section("DXVK") {
-            if wineMode == .crossover {
+            if currentMode == .crossover {
                 Text("CrossOver 模式不支持 DXVK")
                     .foregroundStyle(.secondary)
                     .font(.subheadline)
@@ -102,13 +105,13 @@ struct DXVKSettingsView: View {
         .onAppear {
             refreshStatus()
         }
-        .onChange(of: wineMode) { _ in
+        .onChange(of: refreshTrigger) { _ in
             refreshStatus()
         }
     }
 
     private func refreshStatus() {
-        isInstalled = WhiskyWineInstaller.isDXVKInstalled(mode: wineMode)
+        isInstalled = WhiskyWineInstaller.isDXVKInstalled(mode: currentMode)
     }
 
     private func formatBytes(_ bytes: Int64) -> String {
@@ -125,7 +128,8 @@ struct DXVKSettingsView: View {
         dxvkCompletedBytes = 0
         dxvkTotalBytes = 0
 
-        let mode = wineMode
+        let mode = currentMode
+        print("[DXVK] Starting install for mode: \(mode.rawValue)")
         let downloader = WhiskyWineDownloader(
             downloadURL: WhiskyWineInstaller.dxvkDownloadURL,
             cacheFileName: "DXVK.tar.gz",
@@ -167,5 +171,5 @@ struct DXVKSettingsView: View {
 }
 
 #Preview {
-    DXVKSettingsView(wineMode: .whiskyWine)
+    DXVKSettingsView()
 }
