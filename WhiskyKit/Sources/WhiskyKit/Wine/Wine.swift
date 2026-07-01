@@ -278,11 +278,13 @@ public class Wine {
             "GST_DEBUG": "1",
             "WINEDLLPATH": wineDllPath.path,
             "WINEDATADIR": wineDataDir.path,
-            "PATH": "\(wineBinPath):\(currentPath)"
+            "PATH": "\(wineBinPath):\(currentPath)",
+            "ROSETTA_ADVERTISE_AVX": "1",
+            "DOTNET_EnableWriteXorExecute": "0"
         ]
 
         if WhiskyWineInstaller.currentMode == .crossover {
-            result["CX_ROOT"] = WhiskyWineInstaller.libraryFolder.path
+            applyCrossOverEnvironment(to: &result)
         }
 
         bottle.settings.environmentVariables(wineEnv: &result)
@@ -305,11 +307,13 @@ public class Wine {
             "GST_DEBUG": "1",
             "WINEDLLPATH": wineDllPath.path,
             "WINEDATADIR": wineDataDir.path,
-            "PATH": "\(wineBinPath):\(currentPath)"
+            "PATH": "\(wineBinPath):\(currentPath)",
+            "ROSETTA_ADVERTISE_AVX": "1",
+            "DOTNET_EnableWriteXorExecute": "0"
         ]
 
         if WhiskyWineInstaller.currentMode == .crossover {
-            result["CX_ROOT"] = WhiskyWineInstaller.libraryFolder.path
+            applyCrossOverEnvironment(to: &result)
         }
 
         guard !environment.isEmpty else { return result }
@@ -332,16 +336,78 @@ public class Wine {
             "GST_DEBUG": "1",
             "WINEDLLPATH": wineDllPath.path,
             "WINEDATADIR": wineDataDir.path,
-            "PATH": "\(wineBinPath):\(currentPath)"
+            "PATH": "\(wineBinPath):\(currentPath)",
+            "ROSETTA_ADVERTISE_AVX": "1",
+            "DOTNET_EnableWriteXorExecute": "0"
         ]
 
         if WhiskyWineInstaller.currentMode == .crossover {
-            result["CX_ROOT"] = WhiskyWineInstaller.libraryFolder.path
+            applyCrossOverEnvironment(to: &result)
         }
 
         guard !environment.isEmpty else { return result }
         result.merge(environment, uniquingKeysWith: { $1 })
         return result
+    }
+
+    private static func crossOverWineDLLPath() -> String {
+        let libraryFolder = WhiskyWineInstaller.libraryFolder
+        let fileManager = FileManager.default
+        var paths: [String] = []
+
+        let appleGptkDllPath = libraryFolder
+            .appendingPathComponent("lib64")
+            .appendingPathComponent("apple_gptk")
+            .appendingPathComponent("wine")
+            .appendingPathComponent("x86_64-windows")
+        if fileManager.fileExists(atPath: appleGptkDllPath.path) {
+            paths.append(appleGptkDllPath.path)
+        }
+
+        let lib64DllPath = libraryFolder
+            .appendingPathComponent("lib64")
+            .appendingPathComponent("wine")
+            .appendingPathComponent("x86_64-windows")
+        paths.append(lib64DllPath.path)
+
+        let lib32DllPath = libraryFolder
+            .appendingPathComponent("lib")
+            .appendingPathComponent("wine")
+            .appendingPathComponent("i386-windows")
+        paths.append(lib32DllPath.path)
+
+        let fallbackDllPath = WhiskyWineInstaller.libFolder.appendingPathComponent("wine")
+        paths.append(fallbackDllPath.path)
+
+        return paths.joined(separator: ":")
+    }
+
+    private static func applyCrossOverEnvironment(to env: inout [String: String]) {
+        let libraryFolder = WhiskyWineInstaller.libraryFolder
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+
+        env["WINEDLLPATH"] = crossOverWineDLLPath()
+        env["CX_ROOT"] = libraryFolder.path
+        env["WINELOADER"] = libraryFolder
+            .appendingPathComponent("CrossOver-Hosted Application")
+            .appending(path: "wineloader").path
+        env["WINESERVER"] = wineserverBinary.path
+        env["GST_PLUGIN_SYSTEM_PATH"] = libraryFolder
+            .appending(path: "lib64")
+            .appending(path: "gstreamer-1.0").path
+        if let appSupport = appSupport {
+            env["GST_REGISTRY"] = appSupport
+                .appending(path: "gstreamer-1.0-registry.x86_64.bin").path
+        }
+
+        let d3dSharedPath = libraryFolder
+            .appendingPathComponent("lib64")
+            .appendingPathComponent("apple_gptk")
+            .appendingPathComponent("external")
+            .appendingPathComponent("libd3dshared.dylib")
+        if FileManager.default.fileExists(atPath: d3dSharedPath.path) {
+            env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] = d3dSharedPath.path
+        }
     }
 }
 
