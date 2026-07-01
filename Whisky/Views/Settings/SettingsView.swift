@@ -31,6 +31,13 @@ struct SettingsView: View {
     @State private var pendingMode: WhiskyWineInstaller.WineMode?
     @State private var isLoadingVersion = false
     @State private var installStatuses: [WhiskyWineInstaller.WineMode: Bool] = [:]
+    @State private var dxvkStatuses: [WhiskyWineInstaller.WineMode: Bool] = [:]
+    @State private var isDXVKInstalling = false
+    @State private var dxvkProgress: Double = 0
+    @State private var dxvkTotalBytes: Int64 = 0
+    @State private var dxvkCompletedBytes: Int64 = 0
+    @State private var dxvkError: String?
+    @State private var dxvkInstallMode: WhiskyWineInstaller.WineMode?
 
     var body: some View {
         Form {
@@ -111,6 +118,64 @@ struct SettingsView: View {
                     }
                 }
             }
+            Section("DXVK") {
+                if wineMode == .crossover {
+                    Text("CrossOver 模式不支持 DXVK")
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                } else {
+                    VStack(spacing: 12) {
+                        HStack {
+                            Text("DXVK (DX10/DX11 硬件加速)")
+                            Spacer()
+                            if let isInstalled = dxvkStatuses[wineMode] {
+                                if isInstalled {
+                                    Label("已安装", systemImage: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                } else {
+                                    Label("未安装", systemImage: "questionmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                        }
+
+                        if isDXVKInstalling {
+                            VStack(spacing: 6) {
+                                ProgressView(value: dxvkProgress)
+                                    .progressViewStyle(.linear)
+                                HStack {
+                                    Text(formatBytes(dxvkCompletedBytes))
+                                    Spacer()
+                                    Text(formatBytes(dxvkTotalBytes))
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        if let dxvkError = dxvkError {
+                            Text(dxvkError)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .lineLimit(2)
+                        }
+
+                        HStack {
+                            Spacer()
+                            Button(buttonText) {
+                                installDXVK()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .disabled(isDXVKInstalling)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
             Section("settings.updates") {
                 Toggle("settings.toggle.whisky.updates", isOn: $whiskyUpdate)
                 Toggle("settings.toggle.whiskywine.updates", isOn: $checkWhiskyWineUpdates)
@@ -163,13 +228,83 @@ struct SettingsView: View {
         Task {
             let modes: [WhiskyWineInstaller.WineMode] = [.whiskyWine, .proton11, .proton10, .crossover]
             var statuses: [WhiskyWineInstaller.WineMode: Bool] = [:]
+            var dxvkStatuses: [WhiskyWineInstaller.WineMode: Bool] = [:]
             for mode in modes {
                 statuses[mode] = WhiskyWineInstaller.isInstalled(mode: mode)
+                dxvkStatuses[mode] = WhiskyWineInstaller.isDXVKInstalled(mode: mode)
             }
             await MainActor.run {
                 installStatuses = statuses
+                self.dxvkStatuses = dxvkStatuses
             }
         }
+    }
+
+    private var buttonText: String {
+        if isDXVKInstalling {
+            return "安装中..."
+        }
+        if let isInstalled = dxvkStatuses[wineMode], isInstalled {
+            return "重新安装 DXVK"
+        }
+        return "安装 DXVK"
+    }
+
+    private func formatBytes(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
+    }
+
+    private func installDXVK() {
+        isDXVKInstalling = true
+        dxvkError = nil
+        dxvkProgress = 0
+        dxvkCompletedBytes = 0
+        dxvkTotalBytes = 0
+        dxvkInstallMode = wineMode
+
+        let mode = wineMode
+        let downloader = WhiskyWineDownloader(
+            downloadURL: WhiskyWineInstaller.dxvkDownloadURL,
+            cacheFileName: "DXVK.tar.gz",
+            totalBytesHandler: { total in
+                Task { @MainActor in
+                    self.dxvkTotalBytes = total
+                }
+            },
+            progressHandler: { completed, total in
+                Task { @MainActor in
+                    self.dxvkCompletedBytes = completed
+                    if total > 0 {
+                        self.dxvkProgress = Double(completed) / Double(total)
+                    }
+                }
+            },
+            completionHandler: { [self] tarURL in
+                Task { @MainActor in
+                    do {
+                        try WhiskyWineInstaller.installDXVK(from: tarURL, mode: mode)
+                        self.dxvkStatuses[mode] = true
+                        self.isDXVKInstalling = false
+                        self.dxvkInstallMode = nil
+                    } catch {
+                        self.dxvkError = "安装失败: \(error.localizedDescription)"
+                        self.isDXVKInstalling = false
+                        self.dxvkInstallMode = nil
+                    }
+                }
+            },
+            errorHandler: { error in
+                Task { @MainActor in
+                    self.dxvkError = "下载失败: \(error.localizedDescription)"
+                    self.isDXVKInstalling = false
+                    self.dxvkInstallMode = nil
+                }
+            }
+        )
+        downloader.start()
     }
 
     private func modeName(for mode: WhiskyWineInstaller.WineMode) -> String {

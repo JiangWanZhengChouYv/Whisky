@@ -21,25 +21,10 @@ import os.log
 
 public class Wine {
     /// URL to the installed `DXVK` folder
-    private static var dxvkFolder: URL { WhiskyWineInstaller.libraryFolder.appending(path: "DXVK") }
-    /// Whether DXVK files are available
+    private static var dxvkFolder: URL { WhiskyWineInstaller.dxvkFolder(for: WhiskyWineInstaller.currentMode) }
+    /// Whether DXVK files are available for the current mode
     public static var isDXVKAvailable: Bool {
-        let fileManager = FileManager.default
-        let x64Folder = dxvkFolder.appending(path: "x64")
-        let x32Folder = dxvkFolder.appending(path: "x32")
-        
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: x64Folder.path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            return false
-        }
-        guard fileManager.fileExists(atPath: x32Folder.path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            return false
-        }
-        
-        guard let x64Contents = try? fileManager.contentsOfDirectory(atPath: x64Folder.path) else {
-            return false
-        }
-        return !x64Contents.filter { $0.lowercased().hasSuffix(".dll") }.isEmpty
+        WhiskyWineInstaller.isDXVKInstalled(mode: WhiskyWineInstaller.currentMode)
     }
     /// Path to the `wine` binary
     public static var wineBinary: URL {
