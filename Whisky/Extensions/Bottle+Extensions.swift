@@ -208,11 +208,12 @@ extension Bottle {
         }
     }
 
-    func exportAsArchive(destination: URL) {
+    func exportAsArchive(destination: URL) throws {
         do {
             try Tar.tar(folder: url, toURL: destination)
         } catch {
-            print("Failed to export bottle")
+            Logger.wineKit.error("Failed to export bottle: \(error)")
+            throw error
         }
     }
 

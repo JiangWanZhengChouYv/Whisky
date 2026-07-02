@@ -36,6 +36,8 @@ struct ContentView: View {
     @State private var refreshAnimation: Angle = .degrees(0)
 
     @State private var bottleFilter = ""
+    @State private var showImportProgress: Bool = false
+    @State private var importResultAlert: ImportResultAlert?
 
     var body: some View {
         NavigationSplitView {
@@ -89,6 +91,23 @@ struct ContentView: View {
             FileOpenView(fileURL: url,
                          currentBottle: selected,
                          bottles: bottleVM.bottles)
+        }
+        .sheet(isPresented: $showImportProgress) {
+            VStack(spacing: 16) {
+                ProgressView()
+                    .controlSize(.large)
+                Text("正在导入瓶子...")
+                    .font(.headline)
+            }
+            .padding(32)
+            .frame(minWidth: 240)
+        }
+        .alert(item: $importResultAlert) { result in
+            Alert(
+                title: Text(result.title),
+                message: Text(result.message),
+                dismissButton: .default(Text("确定"))
+            )
         }
         .onChange(of: selected) {
             selectedBottleURL = selected
@@ -246,23 +265,35 @@ struct ContentView: View {
     private func importBottle() {
         let openPanel = NSOpenPanel()
         openPanel.title = String(localized: "button.importBottle")
-        openPanel.allowedContentTypes = [UTType(filenameExtension: "tar")!]
+        openPanel.allowedContentTypes = [UTType(filenameExtension: "tar")!, UTType.gzip]
         openPanel.allowsMultipleSelection = false
         openPanel.canChooseDirectories = false
         openPanel.canChooseFiles = true
 
         openPanel.begin { result in
             if result == .OK, let url = openPanel.url {
-                Task { @MainActor in
+                showImportProgress = true
+                Task.detached(priority: .userInitiated) {
+                    var importResult: ImportResultAlert
                     do {
-                        _ = try Bottle.importFromArchive(sourceURL: url)
+                        let targetPath = try await MainActor.run {
+                            try Bottle.importFromArchive(sourceURL: url)
+                        }
+                        importResult = ImportResultAlert(
+                            title: "导入成功",
+                            message: "瓶子已成功导入：\n\(targetPath.lastPathComponent)",
+                            isSuccess: true
+                        )
                     } catch {
-                        let alert = NSAlert()
-                        alert.messageText = String(localized: "alert.message")
-                        alert.informativeText = "Failed to import bottle: \(error.localizedDescription)"
-                        alert.alertStyle = .critical
-                        alert.addButton(withTitle: String(localized: "button.ok"))
-                        alert.runModal()
+                        importResult = ImportResultAlert(
+                            title: "导入失败",
+                            message: "导入瓶子时出错：\(error.localizedDescription)",
+                            isSuccess: false
+                        )
+                    }
+                    await MainActor.run {
+                        showImportProgress = false
+                        importResultAlert = importResult
                     }
                 }
             }
@@ -279,6 +310,13 @@ struct ContentView: View {
                 .sorted()
         }
     }
+}
+
+private struct ImportResultAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let isSuccess: Bool
 }
 
 #Preview {

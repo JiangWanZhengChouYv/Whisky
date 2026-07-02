@@ -82,7 +82,16 @@ struct BottleListEntry: View {
                         if result == .OK {
                             if let url = panel.url {
                                 Task.detached(priority: .background) {
-                                    bottle.exportAsArchive(destination: url)
+                                    do {
+                                        try bottle.exportAsArchive(destination: url)
+                                        await MainActor.run {
+                                            showExportSuccessAlert(path: url.path)
+                                        }
+                                    } catch {
+                                        await MainActor.run {
+                                            showExportErrorAlert(error: error)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -125,6 +134,24 @@ struct BottleListEntry: View {
                 bottle.remove(delete: checkbox.state == .on)
             }
         }
+    }
+
+    private func showExportSuccessAlert(path: String) {
+        let alert = NSAlert()
+        alert.messageText = "导出成功"
+        alert.informativeText = "瓶子已成功导出到：\n\(path)"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "确定")
+        alert.runModal()
+    }
+
+    private func showExportErrorAlert(error: Error) {
+        let alert = NSAlert()
+        alert.messageText = "导出失败"
+        alert.informativeText = "导出瓶子时出错：\(error.localizedDescription)"
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "确定")
+        alert.runModal()
     }
 }
 
