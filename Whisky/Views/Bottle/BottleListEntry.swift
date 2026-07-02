@@ -77,7 +77,7 @@ struct BottleListEntry: View {
                     panel.allowedContentTypes = [UTType.gzip]
                     panel.allowsOtherFileTypes = false
                     panel.isExtensionHidden = false
-                    panel.nameFieldStringValue = bottle.settings.name + ".tar"
+                    panel.nameFieldStringValue = bottle.settings.name + ".tar.gz"
                     panel.begin { result in
                         if result == .OK {
                             if let url = panel.url {

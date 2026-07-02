@@ -26,7 +26,9 @@ public class Tar {
         let pipe = Pipe()
 
         process.executableURL = tarBinary
-        process.arguments = ["-zcf", "\(toURL.path)", "\(folder.path)"]
+        // 使用 -C 切换到 folder 目录，打包 "."（当前目录内容）
+        // 避免在 tar 包中保留绝对路径（Users/markzhang/Library/...）
+        process.arguments = ["-zcf", "\(toURL.path)", "-C", "\(folder.path)", "."]
         process.standardOutput = pipe
         process.standardError = pipe
 

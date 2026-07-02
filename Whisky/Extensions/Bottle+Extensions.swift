@@ -220,7 +220,11 @@ extension Bottle {
     @MainActor
     static func importFromArchive(sourceURL: URL) throws -> URL {
         let fileManager = FileManager.default
-        let bottleName = sourceURL.deletingPathExtension().lastPathComponent
+        // 处理 .tar.gz 双扩展名：删除扩展名后若仍以 .tar 结尾，再删除一次
+        var bottleName = sourceURL.deletingPathExtension().lastPathComponent
+        if bottleName.hasSuffix(".tar") {
+            bottleName = String(bottleName.dropLast(".tar".count))
+        }
         let bottlesDir = BottleData.defaultBottleDir
         try fileManager.createDirectory(at: bottlesDir, withIntermediateDirectories: true)
 
@@ -232,6 +236,15 @@ extension Bottle {
 
         try fileManager.createDirectory(at: targetDir, withIntermediateDirectories: true)
         try Tar.untar(tarBall: sourceURL, toURL: targetDir)
+
+        // 验证解压后包含 Metadata.plist（bottle 必需文件）
+        let metadataPath = targetDir.appending(path: "Metadata.plist")
+        if !fileManager.fileExists(atPath: metadataPath.path) {
+            // 清理无效导入
+            try? fileManager.removeItem(at: targetDir)
+            throw NSError(domain: "BottleImport", code: -2,
+                          userInfo: [NSLocalizedDescriptionKey: "Invalid bottle archive: Metadata.plist not found. This file may not be a valid Whisky bottle export."])
+        }
 
         if !BottleVM.shared.bottlesList.paths.contains(targetDir) {
             BottleVM.shared.bottlesList.paths.append(targetDir)
