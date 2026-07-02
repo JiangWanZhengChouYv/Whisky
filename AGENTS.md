@@ -397,6 +397,21 @@ Whisky 是一个 macOS 上的 Wine 图形化管理工具，用于在 Mac 上运�
 - **测试包**: 临时/Whisky-导入导出修复版.app
 - **时间**: 2026-07-02
 
+### 23. v3.0.0 正式版发布
+- **版本**: 3.0.0（正式版，从 Pre-Release 转为正式 Release）
+- **操作**:
+  - 将 v3.0.0 GitHub Release 从 Pre-Release 转为正式版（prerelease=false）
+  - 删除旧的 Whisky-3.0.0.zip 资产（Pre-Release 版本，1.3GB）
+  - 上传新的 Whisky-3.0.0.zip 资产（最新构建，5.8MB 压缩后）
+  - 更新 Release Notes，包含新增功能、Pre-Release 后修复、重要说明
+- **Release Notes 内容**:
+  - 新增功能：4 种 Wine 引擎、ProtonWine 优化、Winetricks、DXVK 自动安装/卸载、Apple GPTK、瓶子导入、ProtonWine 更新检测
+  - Pre-Release 后修复：App 体积修复（1.3GB→13MB）、导入/导出修复、CrossOver DXVK 提示优化、DXVK 安装模式修复
+  - 重要说明：Steam 仅 CrossOver 模式可用，CrossOver 需自行安装
+- **下载地址**: https://github.com/JiangWanZhengChouYv/Whisky/releases/download/v3.0.0/Whisky-3.0.0.zip
+- **Release 页面**: https://github.com/JiangWanZhengChouYv/Whisky/releases/tag/v3.0.0
+- **时间**: 2026-07-02
+
 ## 关键路径
 - **应用支持目录**: `~/Library/Application Support/com.whisky.Whisky/`
 - **Wine 安装目录**: `Libraries/Wine/{bin, lib, share}`
@@ -432,9 +447,8 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - Proton 10 Release: `proton10`
 
 ## 最后更新
-2026-07-02 - App 体积修复 & 导入 Tar 路径修复
-  - App 体积从 1.3GB 降回 13MB（移除 WhiskyKit Resources 引用）
-  - 修复 Tar.tar 使用绝对路径导致导入后 bottle 内容嵌套的问题
-  - 修复 .tar.gz 文件名提取（Steam.tar.gz → Steam）
-  - 导出默认文件名改为 .tar.gz 匹配 gzip 格式
-  - 测试包：临时/Whisky-导入导出修复版.app
+2026-07-02 - v3.0.0 正式版发布
+  - v3.0.0 从 Pre-Release 转为正式 Release
+  - 上传最新 Whisky-3.0.0.zip（5.8MB，含所有修复）
+  - Release Notes 包含新增功能、修复内容、Steam 限制说明
+  - Release 页面：https://github.com/JiangWanZhengChouYv/Whisky/releases/tag/v3.0.0
