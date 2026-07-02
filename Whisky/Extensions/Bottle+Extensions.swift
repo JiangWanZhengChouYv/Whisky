@@ -217,6 +217,31 @@ extension Bottle {
     }
 
     @MainActor
+    static func importFromArchive(sourceURL: URL) throws -> URL {
+        let fileManager = FileManager.default
+        let bottleName = sourceURL.deletingPathExtension().lastPathComponent
+        let bottlesDir = BottleData.defaultBottleDir
+        try fileManager.createDirectory(at: bottlesDir, withIntermediateDirectories: true)
+
+        let targetDir = bottlesDir.appending(path: bottleName)
+        if fileManager.fileExists(atPath: targetDir.path) {
+            throw NSError(domain: "BottleImport", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "Bottle with name '\(bottleName)' already exists"])
+        }
+
+        try fileManager.createDirectory(at: targetDir, withIntermediateDirectories: true)
+        try Tar.untar(tarBall: sourceURL, toURL: targetDir)
+
+        if !BottleVM.shared.bottlesList.paths.contains(targetDir) {
+            BottleVM.shared.bottlesList.paths.append(targetDir)
+        }
+        BottleVM.shared.loadBottles()
+
+        print("Bottle imported successfully: \(targetDir.path)")
+        return targetDir
+    }
+
+    @MainActor
     func remove(delete: Bool) {
         do {
             if let bottle = BottleVM.shared.bottles.first(where: { $0.url == url }) {

@@ -123,4 +123,25 @@ extension WhiskyWineInstaller {
 
         print("[DXVK Install] DXVK installed successfully for mode \(mode.rawValue)")
     }
+
+    /// Uninstall DXVK for the specified mode
+    public static func uninstallDXVK(mode: WineMode) throws {
+        guard mode != .crossover else {
+            throw NSError(domain: "DXVKUninstall", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "DXVK not supported for CrossOver mode"])
+        }
+
+        let fileManager = FileManager.default
+        let dxvkDir = dxvkFolder(for: mode)
+        print("[DXVK Uninstall] Removing DXVK for mode \(mode.rawValue) from: \(dxvkDir.path)")
+
+        if fileManager.fileExists(atPath: dxvkDir.path) {
+            try fileManager.removeItem(at: dxvkDir)
+            print("[DXVK Uninstall] DXVK removed successfully for mode \(mode.rawValue)")
+        } else {
+            print("[DXVK Uninstall] DXVK not found for mode \(mode.rawValue)")
+            throw NSError(domain: "DXVKUninstall", code: -2,
+                          userInfo: [NSLocalizedDescriptionKey: "DXVK not installed"])
+        }
+    }
 }

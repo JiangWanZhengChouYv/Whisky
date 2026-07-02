@@ -54,6 +54,14 @@ struct ContentView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 Button {
+                    importBottle()
+                } label: {
+                    Image(systemName: "arrow.down.to.line")
+                        .help("button.importBottle")
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
                     bottleVM.loadBottles()
                     if let bottle = bottleVM.bottles.first(where: { $0.url == selected }) {
                         bottle.updateInstalledPrograms()
@@ -109,17 +117,17 @@ struct ContentView: View {
                     showSetup = true
                 }
             }
-            let task = Task.detached {
+            let whiskyWineUpdateTask = Task.detached {
                 return await WhiskyWineInstaller.shouldUpdateWhiskyWine()
             }
-            let updateInfo = await task.value
-            if updateInfo.0 {
+            let whiskyWineUpdateInfo = await whiskyWineUpdateTask.value
+            if whiskyWineUpdateInfo.0 {
                 let alert = NSAlert()
                 alert.messageText = String(localized: "update.whiskywine.title")
                 alert.informativeText = String(format: String(localized: "update.whiskywine.description"),
                                                String(WhiskyWineInstaller.whiskyWineVersion()
                                                       ?? SemanticVersion(0, 0, 0)),
-                                               String(updateInfo.1))
+                                               String(whiskyWineUpdateInfo.1))
                 alert.alertStyle = .warning
                 alert.addButton(withTitle: String(localized: "update.whiskywine.update"))
                 alert.addButton(withTitle: String(localized: "button.removeAlert.cancel"))
@@ -129,6 +137,42 @@ struct ContentView: View {
                 if response == .alertFirstButtonReturn {
                     WhiskyWineInstaller.uninstall()
                     showSetup = true
+                }
+            }
+
+            let currentMode = WhiskyWineInstaller.currentMode
+            if currentMode == .proton11 || currentMode == .proton10 {
+                let protonUpdateTask = Task.detached {
+                    return await WhiskyWineInstaller.shouldUpdateProton(mode: currentMode)
+                }
+                let protonUpdateInfo = await protonUpdateTask.value
+                if protonUpdateInfo.0 {
+                    let alert = NSAlert()
+                    alert.messageText = String(localized: "update.proton.title")
+                    alert.informativeText = String(format: String(localized: "update.proton.description"),
+                                                   String(currentMode == .proton11 ? "ProtonWine 11.0" : "ProtonWine 10.0"),
+                                                   String(WhiskyWineInstaller.protonVersion(mode: currentMode)
+                                                          ?? SemanticVersion(0, 0, 0)),
+                                                   String(protonUpdateInfo.1))
+                    alert.alertStyle = .warning
+                    alert.addButton(withTitle: String(localized: "update.proton.update"))
+                    alert.addButton(withTitle: String(localized: "button.removeAlert.cancel"))
+
+                    let response = alert.runModal()
+
+                    if response == .alertFirstButtonReturn {
+                        switch currentMode {
+                        case .proton11:
+                            try? FileManager.default.removeItem(at:
+                                WhiskyWineInstaller.applicationFolder.appending(path: "Libraries/Proton11"))
+                        case .proton10:
+                            try? FileManager.default.removeItem(at:
+                                WhiskyWineInstaller.applicationFolder.appending(path: "Libraries/Proton10"))
+                        default:
+                            break
+                        }
+                        showSetup = true
+                    }
                 }
             }
         }
@@ -194,6 +238,32 @@ struct ContentView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.accentColor)
+                }
+            }
+        }
+    }
+
+    private func importBottle() {
+        let openPanel = NSOpenPanel()
+        openPanel.title = String(localized: "button.importBottle")
+        openPanel.allowedContentTypes = [UTType(filenameExtension: "tar")!]
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+        openPanel.canChooseFiles = true
+
+        openPanel.begin { result in
+            if result == .OK, let url = openPanel.url {
+                Task { @MainActor in
+                    do {
+                        _ = try Bottle.importFromArchive(sourceURL: url)
+                    } catch {
+                        let alert = NSAlert()
+                        alert.messageText = String(localized: "alert.message")
+                        alert.informativeText = "Failed to import bottle: \(error.localizedDescription)"
+                        alert.alertStyle = .critical
+                        alert.addButton(withTitle: String(localized: "button.ok"))
+                        alert.runModal()
+                    }
                 }
             }
         }

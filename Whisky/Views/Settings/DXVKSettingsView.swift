@@ -43,12 +43,25 @@ struct DXVKSettingsView: View {
         return "安装 DXVK"
     }
 
+    private var showUninstallButton: Bool {
+        if let isInstalled = isInstalled, isInstalled, !isDXVKInstalling {
+            return true
+        }
+        return false
+    }
+
     var body: some View {
         Section("DXVK") {
             if currentMode == .crossover {
-                Text("CrossOver 模式不支持 DXVK")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("CrossOver 模式使用自带的图形加速方案")
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                    Text("CrossOver 已内置 D3DM 图形驱动和 Apple GPTK 支持，无需额外安装 DXVK")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .lineLimit(2)
+                }
             } else {
                 VStack(spacing: 12) {
                     HStack {
@@ -97,6 +110,15 @@ struct DXVKSettingsView: View {
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                         .disabled(isDXVKInstalling)
+
+                        if showUninstallButton {
+                            Button("卸载 DXVK") {
+                                uninstallDXVK()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .tint(.red)
+                        }
                     }
                 }
                 .padding(.vertical, 4)
@@ -167,6 +189,24 @@ struct DXVKSettingsView: View {
             }
         )
         downloader.start()
+    }
+
+    private func uninstallDXVK() {
+        let mode = currentMode
+        print("[DXVK] Starting uninstall for mode: \(mode.rawValue)")
+        Task {
+            do {
+                try WhiskyWineInstaller.uninstallDXVK(mode: mode)
+                Task { @MainActor in
+                    self.isInstalled = false
+                    self.dxvkError = nil
+                }
+            } catch {
+                Task { @MainActor in
+                    self.dxvkError = "卸载失败: \(error.localizedDescription)"
+                }
+            }
+        }
     }
 }
 

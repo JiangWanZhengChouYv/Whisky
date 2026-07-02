@@ -161,30 +161,4 @@ extension WhiskyWineInstaller {
             throw InstallationError.invalidInstallation("ProtonVersion.plist not found or invalid")
         }
     }
-
-    public static func protonVersion(mode: WineMode) -> SemanticVersion? {
-        do {
-            let protonFolder: URL
-            switch mode {
-            case .proton11:
-                protonFolder = applicationFolder.appending(path: "Libraries/Proton11")
-            case .proton10:
-                protonFolder = applicationFolder.appending(path: "Libraries/Proton10")
-            default:
-                return nil
-            }
-
-            let versionPlist = protonFolder
-                .appending(path: "ProtonVersion")
-                .appendingPathExtension("plist")
-
-            let decoder = PropertyListDecoder()
-            let data = try Data(contentsOf: versionPlist)
-            let info = try decoder.decode(WhiskyWineVersion.self, from: data)
-            return info.version
-        } catch {
-            print(error)
-            return nil
-        }
-    }
 }
