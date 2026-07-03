@@ -480,6 +480,27 @@ Whisky 是一个 macOS 上的 Wine 图形化管理工具，用于在 Mac 上运�
 - **测试包**: 临时/Whisky.app
 - **时间**: 2026-07-03
 
+### 26. ProtonWine 模式 Steam 兼容性优化
+- **功能**: 优化 ProtonWine 模式的配置，提升 Steam 等游戏的兼容性
+- **WINEDLLPATH 优化**:
+  - WhiskyWine/ProtonWine 模式的 WINEDLLPATH 从单一路径改为多路径
+  - 路径优先级：x86_64-windows → i386-windows → wine/（fallback）
+  - 类似 CrossOver 的路径结构，提升 DLL 查找效率
+  - 新增 `defaultWineDLLPath()` 方法构建路径
+- **DXVK 配置确认**:
+  - DXVK-macOS 只包含 d3d10core.dll 和 d3d11.dll（无 dxgi.dll）
+  - 符合 macOS DXVK 设计（dxgi 由 Wine 内置版本处理）
+  - DXVK HUD 设置 UI 已存在（full/partial/fps/off）
+- **Steam 兼容性提示优化**:
+  - 提示信息更详细，说明 CrossOver 的 Apple GPTK 和 D3DMetal 优势
+  - 硬编码中文提取到本地化字符串
+- **文件**:
+  - `Wine.swift` - 新增 defaultWineDLLPath()，完善 WINEDLLPATH
+  - `BottleView.swift` - Steam 提示使用本地化字符串
+  - `Localizable.xcstrings` - 添加 steam.warning.title/message
+- **测试包**: 临时/Whisky.app
+- **时间**: 2026-07-04
+
 ## 关键路径
 - **应用支持目录**: `~/Library/Application Support/com.whisky.Whisky/`
 - **Wine 安装目录**: `Libraries/Wine/{bin, lib, share}`
@@ -515,8 +536,8 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - Proton 10 Release: `proton10`
 
 ## 最后更新
-2026-07-03 - 修复进程页面一直 loading 和 Sparkle 启动报错
-  - RunningProcessesView 添加 loading/success/error/empty 四种状态
-  - Sparkle startingUpdater 改为 false，避免启动报错
-  - 删除无用 build-all-fixes 目录
-  - CI: Build #86 + SwiftLint #91 通过
+2026-07-04 - ProtonWine 模式 Steam 兼容性优化
+  - WhiskyWine/ProtonWine WINEDLLPATH 改为多路径（x86_64-windows + i386-windows）
+  - Steam 兼容性提示优化，提取到本地化字符串
+  - DXVK HUD 设置 UI 已存在，无需新增
+  - 测试包：临时/Whisky.app
