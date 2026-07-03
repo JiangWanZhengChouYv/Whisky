@@ -16,9 +16,12 @@
 //  If not, see https://www.gnu.org/licenses/.
 //
 
+import os
 import SwiftUI
 import UniformTypeIdentifiers
 import WhiskyKit
+
+private let logger = Logger(subsystem: "com.whisky.Whisky", category: "BottleView")
 
 enum BottleStage {
     case config
@@ -31,6 +34,7 @@ struct BottleView: View {
     @State private var path = NavigationPath()
     @State private var programLoading: Bool = false
     @State private var showWinetricksSheet: Bool = false
+    @State private var showSteamWarning: Bool = false
 
     private let gridLayout = [GridItem(.adaptive(minimum: 100, maximum: .infinity))]
 
@@ -53,9 +57,9 @@ struct BottleView: View {
                     NavigationLink(value: BottleStage.config) {
                         Label("tab.config", systemImage: "gearshape")
                     }
-//                    NavigationLink(value: BottleStage.processes) {
-//                        Label("tab.processes", systemImage: "hockey.puck.circle")
-//                    }
+                    NavigationLink(value: BottleStage.processes) {
+                        Label("tab.processes", systemImage: "hockey.puck.circle")
+                    }
                 }
                 .formStyle(.grouped)
                 .scrollDisabled(true)
@@ -86,6 +90,11 @@ struct BottleView: View {
                             Task(priority: .userInitiated) {
                                 if result == .OK {
                                     if let url = panel.urls.first {
+                                        if (WhiskyWineInstaller.currentMode == .proton11
+                                            || WhiskyWineInstaller.currentMode == .proton10)
+                                            && url.path().lowercased().contains("steam") {
+                                            showSteamWarning = true
+                                        }
                                         do {
                                             if url.pathExtension == "bat" {
                                                 try await Wine.runBatchFile(url: url, bottle: bottle)
@@ -93,7 +102,7 @@ struct BottleView: View {
                                                 try await Wine.runProgram(at: url, bottle: bottle)
                                             }
                                         } catch {
-                                            print("Failed to run external program: \(error)")
+                                            logger.error("Failed to run external program: \(error)")
                                         }
                                         programLoading = false
                                     }
@@ -121,6 +130,11 @@ struct BottleView: View {
             .navigationTitle(bottle.settings.name)
             .sheet(isPresented: $showWinetricksSheet) {
                 WinetricksView(bottle: bottle)
+            }
+            .alert("Steam 兼容性提示", isPresented: $showSteamWarning) {
+                Button("我知道了", role: .cancel) { }
+            } message: {
+                Text("Steam 在 ProtonWine 模式下可能无法正常运行（黑屏）。建议使用 CrossOver 模式运行 Steam。")
             }
             .onChange(of: bottle.settings) { oldValue, newValue in
                 guard oldValue != newValue else { return }

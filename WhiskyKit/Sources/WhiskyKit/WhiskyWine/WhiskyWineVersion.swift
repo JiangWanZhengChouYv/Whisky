@@ -20,7 +20,7 @@ import Foundation
 import SemanticVersion
 
 struct WhiskyWineVersion: Codable {
-    var version: SemanticVersion = SemanticVersion(1, 0, 0)
+    var version: SemanticVersion = SemanticVersion(11, 0, 1)
 
     enum CodingKeys: String, CodingKey {
         case version

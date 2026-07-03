@@ -35,12 +35,12 @@ struct DXVKSettingsView: View {
     }
     private var buttonText: String {
         if isDXVKInstalling {
-            return "安装中..."
+            return String(localized: "dxvk.installing")
         }
         if let isInstalled = isInstalled, isInstalled {
-            return "重新安装 DXVK"
+            return String(localized: "dxvk.reinstall")
         }
-        return "安装 DXVK"
+        return String(localized: "dxvk.install")
     }
 
     private var showUninstallButton: Bool {
@@ -54,10 +54,10 @@ struct DXVKSettingsView: View {
         Section("DXVK") {
             if currentMode == .crossover {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("CrossOver 模式使用自带的图形加速方案")
+                    Text("dxvk.crossoverGraphic")
                         .foregroundStyle(.secondary)
                         .font(.subheadline)
-                    Text("CrossOver 已内置 D3DM 图形驱动和 Apple GPTK 支持，无需额外安装 DXVK")
+                    Text("dxvk.crossoverNotNeeded")
                         .foregroundStyle(.secondary)
                         .font(.caption)
                         .lineLimit(2)
@@ -65,14 +65,14 @@ struct DXVKSettingsView: View {
             } else {
                 VStack(spacing: 12) {
                     HStack {
-                        Text("DXVK (DX10/DX11 硬件加速)")
+                        Text("dxvk.title")
                         Spacer()
                         if let isInstalled = isInstalled {
                             if isInstalled {
-                                Label("已安装", systemImage: "checkmark.circle.fill")
+                                Label("dxvk.installed", systemImage: "checkmark.circle.fill")
                                     .foregroundStyle(.green)
                             } else {
-                                Label("未安装", systemImage: "questionmark.circle.fill")
+                                Label("dxvk.notInstalled", systemImage: "questionmark.circle.fill")
                                     .foregroundStyle(.secondary)
                             }
                         } else {
@@ -112,7 +112,7 @@ struct DXVKSettingsView: View {
                         .disabled(isDXVKInstalling)
 
                         if showUninstallButton {
-                            Button("卸载 DXVK") {
+                            Button("dxvk.uninstall") {
                                 uninstallDXVK()
                             }
                             .buttonStyle(.bordered)
@@ -176,14 +176,16 @@ struct DXVKSettingsView: View {
                         self.isDXVKInstalling = false
                         self.onInstalled?()
                     } catch {
-                        self.dxvkError = "安装失败: \(error.localizedDescription)"
+                        self.dxvkError = String(format: String(localized: "dxvk.installFailedError"),
+                                                error.localizedDescription)
                         self.isDXVKInstalling = false
                     }
                 }
             },
             errorHandler: { error in
                 Task { @MainActor in
-                    self.dxvkError = "下载失败: \(error.localizedDescription)"
+                    self.dxvkError = String(format: String(localized: "dxvk.downloadFailedError"),
+                                            error.localizedDescription)
                     self.isDXVKInstalling = false
                 }
             }
@@ -203,7 +205,8 @@ struct DXVKSettingsView: View {
                 }
             } catch {
                 Task { @MainActor in
-                    self.dxvkError = "卸载失败: \(error.localizedDescription)"
+                    self.dxvkError = String(format: String(localized: "dxvk.uninstallFailedError"),
+                                            error.localizedDescription)
                 }
             }
         }

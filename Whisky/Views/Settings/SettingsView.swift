@@ -130,7 +130,7 @@ struct SettingsView: View {
             dxvkRefreshCounter += 1
         }
         .alert("settings.wine.change.mode.title", isPresented: $showModeConfirmation) {
-            Button("取消", role: .cancel) {
+            Button("button.cancel", role: .cancel) {
                 wineMode = WhiskyWineInstaller.currentMode
                 pendingMode = nil
             }

@@ -3,16 +3,15 @@
 # Whisky 🥃
 *比 Wine 更强大一点*
 
-![](https://img.shields.io/github/actions/workflow/status/IsaacMarovitz/Whisky/SwiftLint.yml?style=for-the-badge)
-[![](https://img.shields.io/discord/1115955071549702235?style=for-the-badge)](https://discord.gg/CsqAfs9CnM)
+![](https://img.shields.io/github/actions/workflow/status/JiangWanZhengChouYv/Whisky/SwiftLint.yml?style=for-the-badge)
 </div>
 
-<img width="650" alt="Config" src="https://github.com/Whisky-App/Whisky/assets/42140194/d0a405e8-76ee-48f0-92b5-165d184a576b">
+<img width="650" alt="Config" src="https://github.com/JiangWanZhengChouYv/Whisky/assets/42140194/d0a405e8-76ee-48f0-92b5-165d184a576b">
 
 与 macOS 无缝集成的熟悉界面
 
 <div align="right">
-  <img width="650" alt="New Bottle" src="https://github.com/Whisky-App/Whisky/assets/42140194/ed1a0d69-d8fb-442b-9330-6816ba8981ba">
+  <img width="650" alt="New Bottle" src="https://github.com/JiangWanZhengChouYv/Whisky/assets/42140194/ed1a0d69-d8fb-442b-9330-6816ba8981ba">
 
   一键创建和管理 Bottle
 </div>
@@ -23,7 +22,7 @@
 
 ---
 
-Whisky 为 Wine 提供了一个干净易用的图形化封装，采用原生 SwiftUI 构建。你可以创建和管理 Bottle，安装并运行 Windows 应用和游戏，无需任何技术知识即可释放 Mac 的全部潜力。Whisky 基于 CrossOver 22.1.1 以及 Apple 自家的 `Game Porting Toolkit` 构建。
+Whisky 为 Wine 提供了一个干净易用的图形化封装，采用原生 SwiftUI 构建。你可以创建和管理 Bottle，安装并运行 Windows 应用和游戏，无需任何技术知识即可释放 Mac 的全部潜力。Whisky 支持多种 Wine 引擎模式，包括 WhiskyWine 11.0.1、ProtonWine 11.0/10.0 以及 CrossOver，并集成 Apple `Game Porting Toolkit` 与 DXVK 等优化方案。
 
 在 [Crowdin](https://crowdin.com/project/whisky) 上进行翻译。
 
@@ -35,7 +34,7 @@ Whisky 为 Wine 提供了一个干净易用的图形化封装，采用原生 Swi
 
 ## 我的游戏无法运行！
 
-部分游戏需要特殊步骤才能运行。请查阅 [wiki](https://github.com/IsaacMarovitz/Whisky/wiki/Game-Support)。
+部分游戏需要特殊步骤才能运行。请查阅 [wiki](https://github.com/JiangWanZhengChouYv/Whisky/wiki/Game-Support)。
 
 ---
 
@@ -94,16 +93,15 @@ WhiskyWine is sourced from [Wine Stable.app](https://www.winehq.org/) (Wine 11.0
 # Whisky 🥃
 *Wine but a bit stronger*
 
-![](https://img.shields.io/github/actions/workflow/status/IsaacMarovitz/Whisky/SwiftLint.yml?style=for-the-badge)
-[![](https://img.shields.io/discord/1115955071549702235?style=for-the-badge)](https://discord.gg/CsqAfs9CnM)
+![](https://img.shields.io/github/actions/workflow/status/JiangWanZhengChouYv/Whisky/SwiftLint.yml?style=for-the-badge)
 </div>
 
-<img width="650" alt="Config" src="https://github.com/Whisky-App/Whisky/assets/42140194/d0a405e8-76ee-48f0-92b5-165d184a576b">
+<img width="650" alt="Config" src="https://github.com/JiangWanZhengChouYv/Whisky/assets/42140194/d0a405e8-76ee-48f0-92b5-165d184a576b">
 
 Familiar UI that integrates seamlessly with macOS
 
 <div align="right">
-  <img width="650" alt="New Bottle" src="https://github.com/Whisky-App/Whisky/assets/42140194/ed1a0d69-d8fb-442b-9330-6816ba8981ba">
+  <img width="650" alt="New Bottle" src="https://github.com/JiangWanZhengChouYv/Whisky/assets/42140194/ed1a0d69-d8fb-442b-9330-6816ba8981ba">
 
   One-click bottle creation and management
 </div>
@@ -114,7 +112,7 @@ Debug and profile with ease
 
 ---
 
-Whisky provides a clean and easy to use graphical wrapper for Wine built in native SwiftUI. You can make and manage bottles, install and run Windows apps and games, and unlock the full potential of your Mac with no technical knowledge required. Whisky is built on top of CrossOver 22.1.1, and Apple's own `Game Porting Toolkit`.
+Whisky provides a clean and easy to use graphical wrapper for Wine built in native SwiftUI. You can make and manage bottles, install and run Windows apps and games, and unlock the full potential of your Mac with no technical knowledge required. Whisky supports multiple Wine engine modes, including WhiskyWine 11.0.1, ProtonWine 11.0/10.0, and CrossOver, with integrated Apple `Game Porting Toolkit` and DXVK optimizations.
 
 Translated on [Crowdin](https://crowdin.com/project/whisky).
 
@@ -126,7 +124,7 @@ Translated on [Crowdin](https://crowdin.com/project/whisky).
 
 ## My game isn't working!
 
-Some games need special steps to get working. Check out the [wiki](https://github.com/IsaacMarovitz/Whisky/wiki/Game-Support).
+Some games need special steps to get working. Check out the [wiki](https://github.com/JiangWanZhengChouYv/Whisky/wiki/Game-Support).
 
 ---
 

@@ -18,6 +18,7 @@
 
 import Foundation
 import SemanticVersion
+import os.log
 
 public class WhiskyWineInstaller {
     public enum WineMode: String, Codable, CaseIterable, Sendable {
@@ -162,14 +163,23 @@ public class WhiskyWineInstaller {
         let fileManager = FileManager.default
         for appPath in possibleCrossOverPaths {
             let crossoverAppURL = URL(fileURLWithPath: appPath)
-            let wineBinURL = URL(fileURLWithPath: appPath)
+            let crossoverSupportURL = URL(fileURLWithPath: appPath)
                 .appendingPathComponent("Contents")
                 .appendingPathComponent("SharedSupport")
                 .appendingPathComponent("CrossOver")
+            let wineBinURL = crossoverSupportURL
                 .appendingPathComponent("bin")
                 .appendingPathComponent("wine")
+            // 验证真正的 wine 二进制是否存在（CrossOver 的 bin/wine 是 Perl 包装脚本，
+            // 真正的二进制位于 lib/wine/x86_64-unix/wine）
+            let wineRealBinaryURL = crossoverSupportURL
+                .appendingPathComponent("lib")
+                .appendingPathComponent("wine")
+                .appendingPathComponent("x86_64-unix")
+                .appendingPathComponent("wine")
             if fileManager.fileExists(atPath: crossoverAppURL.path) &&
-               fileManager.fileExists(atPath: wineBinURL.path) {
+               fileManager.fileExists(atPath: wineBinURL.path) &&
+               fileManager.fileExists(atPath: wineRealBinaryURL.path) {
                 return true
             }
         }
@@ -180,7 +190,18 @@ public class WhiskyWineInstaller {
         let fileManager = FileManager.default
         for appPath in possibleCrossOverPaths {
             let crossoverAppURL = URL(fileURLWithPath: appPath)
-            if fileManager.fileExists(atPath: crossoverAppURL.path) {
+            let crossoverSupportURL = URL(fileURLWithPath: appPath)
+                .appendingPathComponent("Contents")
+                .appendingPathComponent("SharedSupport")
+                .appendingPathComponent("CrossOver")
+            // 仅当 CrossOver 应用存在且包含真正的 wine 二进制时才返回路径
+            let wineRealBinaryURL = crossoverSupportURL
+                .appendingPathComponent("lib")
+                .appendingPathComponent("wine")
+                .appendingPathComponent("x86_64-unix")
+                .appendingPathComponent("wine")
+            if fileManager.fileExists(atPath: crossoverAppURL.path) &&
+               fileManager.fileExists(atPath: wineRealBinaryURL.path) {
                 return crossoverAppURL
             }
         }
@@ -348,28 +369,28 @@ public class WhiskyWineInstaller {
                 }
             }
 
-            print("[WhiskyWine Install] Extracting tar to \(applicationFolder.path)")
+            Logger.wineKit.info("[WhiskyWine Install] Extracting tar to \(applicationFolder.path, privacy: .public)")
             try Tar.untar(tarBall: from, toURL: applicationFolder)
 
-            print("[WhiskyWine Install] Normalizing extracted contents...")
+            Logger.wineKit.info("[WhiskyWine Install] Normalizing extracted contents...")
             try normalizeExtractedContents()
 
-            print("[WhiskyWine Install] Setting executable permissions...")
+            Logger.wineKit.info("[WhiskyWine Install] Setting executable permissions...")
             try WhiskyWineInstallationHelpers.makeBinariesExecutable()
 
-            print("[WhiskyWine Install] Ensuring version plist exists...")
+            Logger.wineKit.info("[WhiskyWine Install] Ensuring version plist exists...")
             try WhiskyWineInstallationHelpers.ensureVersionPlist()
 
-            print("[WhiskyWine Install] Creating wine64 symlink if needed...")
+            Logger.wineKit.info("[WhiskyWine Install] Creating wine64 symlink if needed...")
             try createWine64SymlinkIfNeeded()
 
-            print("[WhiskyWine Install] Validating installation...")
+            Logger.wineKit.info("[WhiskyWine Install] Validating installation...")
             try validateInstallation()
 
-            print("[WhiskyWine Install] Installation successful!")
+            Logger.wineKit.info("[WhiskyWine Install] Installation successful!")
             return .success(())
         } catch {
-            print("[WhiskyWine Install] Installation failed: \(error)")
+            Logger.wineKit.error("[WhiskyWine Install] Installation failed: \(error)")
             return .failure(error)
         }
     }
@@ -377,7 +398,7 @@ public class WhiskyWineInstaller {
     public static func installWithRetries(from url: URL, maxRetries: Int = 3) async -> Result<Void, Error> {
         var lastError: Error?
         for attempt in 1...maxRetries {
-            print("[WhiskyWine Install] Attempt \(attempt)/\(maxRetries)")
+            Logger.wineKit.info("[WhiskyWine Install] Attempt \(attempt)/\(maxRetries)")
             let result = install(from: url)
             switch result {
             case .success:
@@ -385,12 +406,12 @@ public class WhiskyWineInstaller {
             case .failure(let error):
                 lastError = error
                 if attempt < maxRetries {
-                    print("[WhiskyWine Install] Attempt \(attempt) failed, retrying...")
+                    Logger.wineKit.warning("[WhiskyWine Install] Attempt \(attempt) failed, retrying...")
                     clearDownloadCache()
                 }
             }
         }
-        print("[WhiskyWine Install] All \(maxRetries) attempts failed")
+        Logger.wineKit.error("[WhiskyWine Install] All \(maxRetries) attempts failed")
         guard let finalError = lastError else {
             return .failure(InstallationError.invalidInstallation("Unknown installation error"))
         }
@@ -404,7 +425,7 @@ public class WhiskyWineInstaller {
         case .proton11, .proton10:
             var lastError: Error?
             for attempt in 1...maxRetries {
-                print("[Proton Install] Attempt \(attempt)/\(maxRetries)")
+                Logger.wineKit.info("[Proton Install] Attempt \(attempt)/\(maxRetries)")
                 let result = installProton(from: url, mode: mode)
                 switch result {
                 case .success:
@@ -412,12 +433,12 @@ public class WhiskyWineInstaller {
                 case .failure(let error):
                     lastError = error
                     if attempt < maxRetries {
-                        print("[Proton Install] Attempt \(attempt) failed, retrying...")
+                        Logger.wineKit.warning("[Proton Install] Attempt \(attempt) failed, retrying...")
                         clearDownloadCache()
                     }
                 }
             }
-            print("[Proton Install] All \(maxRetries) attempts failed")
+            Logger.wineKit.error("[Proton Install] All \(maxRetries) attempts failed")
             guard let finalError = lastError else {
                 return .failure(InstallationError.invalidInstallation("Unknown installation error"))
             }
@@ -431,7 +452,7 @@ public class WhiskyWineInstaller {
         do {
             try FileManager.default.removeItem(at: libraryFolder)
         } catch {
-            print("Failed to uninstall WhiskyWine: \(error)")
+            Logger.wineKit.error("Failed to uninstall WhiskyWine: \(error)")
         }
     }
 
@@ -456,10 +477,10 @@ public class WhiskyWineInstaller {
                             return
                         }
                         if let error = error {
-                            print(error)
+                            Logger.wineKit.warning("Failed to fetch remote WhiskyWine version: \(error)")
                         }
                     } catch {
-                        print(error)
+                        Logger.wineKit.warning("Failed to decode remote WhiskyWine version: \(error)")
                     }
                     continuation.resume(returning: nil)
                 }.resume()
@@ -486,7 +507,7 @@ public class WhiskyWineInstaller {
             let info = try decoder.decode(WhiskyWineVersion.self, from: data)
             return info.version
         } catch {
-            print(error)
+            Logger.wineKit.warning("Failed to read WhiskyWine version: \(error)")
             return nil
         }
     }

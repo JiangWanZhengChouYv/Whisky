@@ -90,7 +90,7 @@ public enum EnhancedSync: Codable, Equatable {
 }
 
 public struct BottleWineConfig: Codable, Equatable {
-    static let defaultWineVersion = SemanticVersion(7, 7, 0)
+    static let defaultWineVersion = SemanticVersion(11, 0, 1)
     var wineVersion: SemanticVersion = Self.defaultWineVersion
     var windowsVersion: WinVersion = .win10
     var enhancedSync: EnhancedSync = .msync
@@ -262,9 +262,6 @@ public struct BottleSettings: Codable, Equatable {
 
         if settings.wineConfig.wineVersion != BottleWineConfig().wineVersion {
             Logger.wineKit.warning("Bottle has a different wine version `\(settings.wineConfig.wineVersion)`")
-            settings.wineConfig.wineVersion = BottleWineConfig().wineVersion
-            try settings.encode(to: metadataURL)
-            return settings
         }
 
         return settings

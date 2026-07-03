@@ -143,7 +143,7 @@ extension Bottle {
                     }
                 }
             } catch {
-                print(error)
+                Logger.wineKit.error("Failed to parse start menu link \(link.path): \(error)")
             }
         }
 
@@ -204,7 +204,7 @@ extension Bottle {
             }
             BottleVM.shared.loadBottles()
         } catch {
-            print("Failed to move bottle")
+            Logger.wineKit.error("Failed to move bottle: \(error)")
         }
     }
 
@@ -251,7 +251,7 @@ extension Bottle {
         }
         BottleVM.shared.loadBottles()
 
-        print("Bottle imported successfully: \(targetDir.path)")
+        Logger.wineKit.info("Bottle imported successfully: \(targetDir.path, privacy: .public)")
         return targetDir
     }
 
@@ -271,7 +271,7 @@ extension Bottle {
             }
             BottleVM.shared.loadBottles()
         } catch {
-            print("Failed to remove bottle")
+            Logger.wineKit.error("Failed to remove bottle: \(error)")
         }
     }
 

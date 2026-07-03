@@ -96,7 +96,7 @@ struct ContentView: View {
             VStack(spacing: 16) {
                 ProgressView()
                     .controlSize(.large)
-                Text("正在导入瓶子...")
+                Text("import.inProgress")
                     .font(.headline)
             }
             .padding(32)
@@ -106,7 +106,7 @@ struct ContentView: View {
             Alert(
                 title: Text(result.title),
                 message: Text(result.message),
-                dismissButton: .default(Text("确定"))
+                dismissButton: .default(Text("button.ok"))
             )
         }
         .onChange(of: selected) {
@@ -280,14 +280,16 @@ struct ContentView: View {
                             try Bottle.importFromArchive(sourceURL: url)
                         }
                         importResult = ImportResultAlert(
-                            title: "导入成功",
-                            message: "瓶子已成功导入：\n\(targetPath.lastPathComponent)",
+                            title: String(localized: "import.success"),
+                            message: String(format: String(localized: "import.successMessage"),
+                                            targetPath.lastPathComponent),
                             isSuccess: true
                         )
                     } catch {
                         importResult = ImportResultAlert(
-                            title: "导入失败",
-                            message: "导入瓶子时出错：\(error.localizedDescription)",
+                            title: String(localized: "import.failed"),
+                            message: String(format: String(localized: "import.errorMessage"),
+                                            error.localizedDescription),
                             isSuccess: false
                         )
                     }

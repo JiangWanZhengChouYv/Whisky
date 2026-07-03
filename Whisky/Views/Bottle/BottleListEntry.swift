@@ -138,19 +138,20 @@ struct BottleListEntry: View {
 
     private func showExportSuccessAlert(path: String) {
         let alert = NSAlert()
-        alert.messageText = "导出成功"
-        alert.informativeText = "瓶子已成功导出到：\n\(path)"
+        alert.messageText = String(localized: "export.success")
+        alert.informativeText = String(format: String(localized: "export.successMessage"), path)
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "确定")
+        alert.addButton(withTitle: String(localized: "button.ok"))
         alert.runModal()
     }
 
     private func showExportErrorAlert(error: Error) {
         let alert = NSAlert()
-        alert.messageText = "导出失败"
-        alert.informativeText = "导出瓶子时出错：\(error.localizedDescription)"
+        alert.messageText = String(localized: "export.failed")
+        alert.informativeText = String(format: String(localized: "export.errorMessage"),
+                                       error.localizedDescription)
         alert.alertStyle = .critical
-        alert.addButton(withTitle: "确定")
+        alert.addButton(withTitle: String(localized: "button.ok"))
         alert.runModal()
     }
 }

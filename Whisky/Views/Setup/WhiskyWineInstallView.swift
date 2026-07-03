@@ -85,9 +85,9 @@ struct WhiskyWineInstallView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                         HStack(spacing: 12) {
-                            Button("查看日志") {
+                            Button("button.viewLog") {
                                 WhiskyApp.showErrorLog(
-                                    title: "安装错误",
+                                    title: String(localized: "install.error"),
                                     message: errorMessage
                                 )
                             }
