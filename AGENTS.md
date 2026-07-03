@@ -454,6 +454,32 @@ Whisky 是一个 macOS 上的 Wine 图形化管理工具，用于在 Mac 上运�
 - **测试包**: 临时/Whisky.app
 - **时间**: 2026-07-03
 
+### 25. 修复进程页面一直 loading 和 Sparkle 启动报错
+- **功能**:
+  - 修复 RunningProcessesView 在 tasklist.exe 执行失败时永远显示"正在获取进程"的问题
+  - 修复 Sparkle 因缺少 SUFeedURL 启动时报错的问题
+- **RunningProcessesView 修复**:
+  - 添加 `ProcessLoadState` 枚举（loading / success / error / empty）
+  - `fetchProcesses()` 根据执行结果设置对应状态，不再永远 loading
+  - UI 用 `switch loadState` 显示四种状态：
+    - loading: ProgressView + "正在获取进程"
+    - success: 进程表格 Table
+    - empty: "没有运行中的进程"
+    - error: "无法获取进程列表" + 重试按钮
+  - `print` 改为 `Logger` 日志
+- **Sparkle 修复**:
+  - `SPUStandardUpdaterController(startingUpdater: false)`，不在启动时自动启动更新器
+  - 避免缺少 SUFeedURL 时弹出报错
+- **其他**:
+  - 删除无用的 `build-all-fixes` 目录
+- **文件**:
+  - `RunningProcessesView.swift` - 加载状态管理 + UI 状态切换
+  - `WhiskyApp.swift` - Sparkle startingUpdater 改为 false
+  - `Localizable.xcstrings` - 添加 process.table.empty/error/retry 本地化
+- **CI**: Build #86 + SwiftLint #91 通过
+- **测试包**: 临时/Whisky.app
+- **时间**: 2026-07-03
+
 ## 关键路径
 - **应用支持目录**: `~/Library/Application Support/com.whisky.Whisky/`
 - **Wine 安装目录**: `Libraries/Wine/{bin, lib, share}`
@@ -489,10 +515,8 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - Proton 10 Release: `proton10`
 
 ## 最后更新
-2026-07-03 - P0-P3 全量问题修复
-  - 修复 Sparkle URL、wineVersion 默认值、启用 Running Processes
-  - 补全 42 个本地化字符串，提取硬编码中文
-  - 增强 CrossOver 检测，添加 Steam 兼容性提示
-  - 修复帮助菜单 URL、README 链接、错误处理
-  - GitHub Release 清理（删除 Draft、WhiskyWine 改为 Pre-release）
-  - CI: Build #84 + SwiftLint #89 通过
+2026-07-03 - 修复进程页面一直 loading 和 Sparkle 启动报错
+  - RunningProcessesView 添加 loading/success/error/empty 四种状态
+  - Sparkle startingUpdater 改为 false，避免启动报错
+  - 删除无用 build-all-fixes 目录
+  - CI: Build #86 + SwiftLint #91 通过
