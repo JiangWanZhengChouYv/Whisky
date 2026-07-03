@@ -11702,6 +11702,38 @@
         }
       }
     },
+    "steam.warning.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Compatibility Notice"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 兼容性提示"
+          }
+        }
+      }
+    },
+    "steam.warning.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam may not work properly in ProtonWine mode (black screen issue). For the best Steam experience, use CrossOver mode which includes Apple GPTK and D3DMetal for better compatibility."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 在 ProtonWine 模式下可能无法正常运行（黑屏问题）。建议使用 CrossOver 模式运行 Steam，CrossOver 内置 Apple GPTK 和 D3DMetal，兼容性更好。"
+          }
+        }
+      }
+    },
     "process.table.loading" : {
       "localizations" : {
         "ar" : {

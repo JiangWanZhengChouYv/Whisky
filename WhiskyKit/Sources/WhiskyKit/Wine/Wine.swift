@@ -278,8 +278,6 @@ public class Wine {
     private static func constructWineEnvironment(
         for bottle: Bottle, environment: [String: String] = [:]
     ) -> [String: String] {
-        let wineLibFolder = WhiskyWineInstaller.libFolder
-        let wineDllPath = wineLibFolder.appendingPathComponent("wine")
         let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
         let wineBinPath = WhiskyWineInstaller.binFolder.path
         let currentPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
@@ -287,7 +285,7 @@ public class Wine {
             "WINEPREFIX": bottle.url.path,
             "WINEDEBUG": "fixme-all",
             "GST_DEBUG": "1",
-            "WINEDLLPATH": wineDllPath.path,
+            "WINEDLLPATH": defaultWineDLLPath(),
             "WINEDATADIR": wineDataDir.path,
             "PATH": "\(wineBinPath):\(currentPath)",
             "ROSETTA_ADVERTISE_AVX": "1",
@@ -308,15 +306,13 @@ public class Wine {
     private static func constructBaseWineEnvironment(
         environment: [String: String] = [:]
     ) -> [String: String] {
-        let wineLibFolder = WhiskyWineInstaller.libFolder
-        let wineDllPath = wineLibFolder.appendingPathComponent("wine")
         let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
         let wineBinPath = WhiskyWineInstaller.binFolder.path
         let currentPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
         var result: [String: String] = [
             "WINEDEBUG": "fixme-all",
             "GST_DEBUG": "1",
-            "WINEDLLPATH": wineDllPath.path,
+            "WINEDLLPATH": defaultWineDLLPath(),
             "WINEDATADIR": wineDataDir.path,
             "PATH": "\(wineBinPath):\(currentPath)",
             "ROSETTA_ADVERTISE_AVX": "1",
@@ -336,8 +332,6 @@ public class Wine {
     private static func constructWineServerEnvironment(
         for bottle: Bottle, environment: [String: String] = [:]
     ) -> [String: String] {
-        let wineLibFolder = WhiskyWineInstaller.libFolder
-        let wineDllPath = wineLibFolder.appendingPathComponent("wine")
         let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
         let wineBinPath = WhiskyWineInstaller.binFolder.path
         let currentPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
@@ -345,7 +339,7 @@ public class Wine {
             "WINEPREFIX": bottle.url.path,
             "WINEDEBUG": "fixme-all",
             "GST_DEBUG": "1",
-            "WINEDLLPATH": wineDllPath.path,
+            "WINEDLLPATH": defaultWineDLLPath(),
             "WINEDATADIR": wineDataDir.path,
             "PATH": "\(wineBinPath):\(currentPath)",
             "ROSETTA_ADVERTISE_AVX": "1",
@@ -359,6 +353,31 @@ public class Wine {
         guard !environment.isEmpty else { return result }
         result.merge(environment, uniquingKeysWith: { $1 })
         return result
+    }
+
+    private static func defaultWineDLLPath() -> String {
+        let wineLibFolder = WhiskyWineInstaller.libFolder
+        let fileManager = FileManager.default
+        var paths: [String] = []
+
+        let x64DllPath = wineLibFolder
+            .appendingPathComponent("wine")
+            .appendingPathComponent("x86_64-windows")
+        if fileManager.fileExists(atPath: x64DllPath.path) {
+            paths.append(x64DllPath.path)
+        }
+
+        let x32DllPath = wineLibFolder
+            .appendingPathComponent("wine")
+            .appendingPathComponent("i386-windows")
+        if fileManager.fileExists(atPath: x32DllPath.path) {
+            paths.append(x32DllPath.path)
+        }
+
+        let fallbackDllPath = wineLibFolder.appendingPathComponent("wine")
+        paths.append(fallbackDllPath.path)
+
+        return paths.joined(separator: ":")
     }
 
     private static func crossOverWineDLLPath() -> String {

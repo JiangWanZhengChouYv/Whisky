@@ -131,10 +131,10 @@ struct BottleView: View {
             .sheet(isPresented: $showWinetricksSheet) {
                 WinetricksView(bottle: bottle)
             }
-            .alert("Steam 兼容性提示", isPresented: $showSteamWarning) {
-                Button("我知道了", role: .cancel) { }
+            .alert("steam.warning.title", isPresented: $showSteamWarning) {
+                Button("button.ok", role: .cancel) { }
             } message: {
-                Text("Steam 在 ProtonWine 模式下可能无法正常运行（黑屏）。建议使用 CrossOver 模式运行 Steam。")
+                Text("steam.warning.message")
             }
             .onChange(of: bottle.settings) { oldValue, newValue in
                 guard oldValue != newValue else { return }
