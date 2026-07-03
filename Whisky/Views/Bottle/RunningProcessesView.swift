@@ -18,6 +18,13 @@
 
 import SwiftUI
 import WhiskyKit
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.whisky.Whisky", category: "RunningProcessesView")
+
+enum ProcessLoadState {
+    case loading, success, error, empty
+}
 
 struct BottleProcess: Identifiable {
     var id = UUID()
@@ -31,10 +38,22 @@ struct RunningProcessesView: View {
     @State private var processes = [BottleProcess]()
     @State private var processSortOrder = [KeyPathComparator(\BottleProcess.pid)]
     @State private var selectedProcess: BottleProcess.ID?
+    @State private var loadState: ProcessLoadState = .loading
 
     var body: some View {
         ZStack {
-            if !processes.isEmpty {
+            switch loadState {
+            case .loading:
+                HStack(alignment: .center) {
+                    Spacer()
+                    VStack(alignment: .center) {
+                        ProgressView()
+                            .padding()
+                        Text("process.table.loading")
+                    }
+                    Spacer()
+                }
+            case .success:
                 VStack {
                     Table(processes, selection: $selectedProcess, sortOrder: $processSortOrder) {
                         TableColumn("process.table.pid", value: \.pid)
@@ -57,13 +76,26 @@ struct RunningProcessesView: View {
                     }
                     .padding()
                 }
-            } else {
+            case .empty:
                 HStack(alignment: .center) {
                     Spacer()
                     VStack(alignment: .center) {
-                        ProgressView()
+                        Text("process.table.empty")
                             .padding()
-                        Text("process.table.loading")
+                    }
+                    Spacer()
+                }
+            case .error:
+                HStack(alignment: .center) {
+                    Spacer()
+                    VStack(alignment: .center) {
+                        Text("process.table.error")
+                            .padding()
+                        Button("process.table.retry") {
+                            Task.detached(priority: .userInitiated) {
+                                await fetchProcesses()
+                            }
+                        }
                     }
                     Spacer()
                 }
@@ -77,14 +109,16 @@ struct RunningProcessesView: View {
     }
 
     func fetchProcesses() async {
+        loadState = .loading
         var newProcessList = [BottleProcess]()
         let output: String?
 
         do {
             output = try await Wine.runWine(["tasklist.exe"], bottle: bottle)
         } catch {
-            print("Error running tasklist.exe: \(error)")
-            output = ""
+            logger.error("Error running tasklist.exe: \(error.localizedDescription, privacy: .public)")
+            loadState = .error
+            return
         }
 
         let lines = output?.split(omittingEmptySubsequences: true, whereSeparator: \.isNewline)
@@ -97,6 +131,11 @@ struct RunningProcessesView: View {
             }
         }
         processes = newProcessList
+        if newProcessList.isEmpty {
+            loadState = .empty
+        } else {
+            loadState = .success
+        }
     }
 
     func killProcess() async {
@@ -105,7 +144,7 @@ struct RunningProcessesView: View {
                 try await Wine.runWine(["taskkill.exe", "/PID", thisProcess.pid, "/F"], bottle: bottle)
                 try await Task.sleep(nanoseconds: 2000)
             } catch {
-                print("Error running taskkill.exe: \(error)")
+                logger.error("Error running taskkill.exe: \(error.localizedDescription, privacy: .public)")
             }
             await fetchProcesses()
         }

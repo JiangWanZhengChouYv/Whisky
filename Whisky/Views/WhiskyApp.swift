@@ -28,7 +28,7 @@ struct WhiskyApp: App {
     private let updaterController: SPUStandardUpdaterController
 
     init() {
-        updaterController = SPUStandardUpdaterController(startingUpdater: true,
+        updaterController = SPUStandardUpdaterController(startingUpdater: false,
                                                          updaterDelegate: nil,
                                                          userDriverDelegate: nil)
     }
