@@ -412,6 +412,48 @@ Whisky 是一个 macOS 上的 Wine 图形化管理工具，用于在 Mac 上运�
 - **Release 页面**: https://github.com/JiangWanZhengChouYv/Whisky/releases/tag/v3.0.0
 - **时间**: 2026-07-02
 
+### 24. P0-P3 全量问题修复
+- **功能**: 全面修复项目检查发现的 20 个问题（P0 严重 4 项、P1 重要 5 项、P2 一般 7 项、P3 对比缺失 4 项）
+- **P0 严重问题修复**:
+  - 移除无效的 Sparkle `SUFeedURL` 和 `SUPublicEDKey`（指向不存在的 appcast.xml）
+  - 修复 `defaultWineVersion` 从 (7,7,0) 改为 (11,0,1)，移除加载时强制重置 wineVersion 的逻辑
+  - 启用 Running Processes 功能（取消 BottleView.swift 中的注释）
+- **P1 重要问题修复**:
+  - 补全 Localizable.xcstrings 中 42 个缺失的本地化字符串（ProtonWine 相关 + 硬编码中文提取）
+  - 增强 CrossOver 检测：验证 `lib/wine/x86_64-unix/wine` 真正二进制是否存在
+  - 添加 ProtonWine 模式下运行 Steam 的兼容性提示
+  - 完善 `wipeShaderCaches()`：增加 DXVK StateCache 和 SpirVCache 清理
+- **P2 一般问题修复**:
+  - 修复 WhiskyWineVersion 默认版本号从 (1,0,0) 改为 (11,0,1)
+  - 移除 WhiskyApp.swift 中 placeholder 代码 `{same path of URL?}`
+  - 修复帮助菜单 URL：getwhisky.app → 自己仓库，Whisky-App/Whisky → JiangWanZhengChouYv/Whisky，移除 Discord 链接
+  - 错误处理改进：Bottle+Extensions.swift、WhiskyWineInstaller.swift、BottleView.swift 中 print 改为 Logger 日志
+- **P3 对比缺失修复**:
+  - 更新 README.md：CI badge、wiki 链接、图片链接指向 JiangWanZhengChouYv/Whisky
+  - 更新项目描述反映多 Wine 引擎模式
+- **GitHub Release 清理**:
+  - 删除 Proton11 多余的 Draft 版本
+  - 将 WhiskyWine v1.0.0 改为 Pre-release，使 Whisky 3.0.0 成为 Latest Release
+- **文件**:
+  - `Info.plist` - 移除 Sparkle 配置
+  - `BottleSettings.swift` - wineVersion 默认值修复
+  - `BottleView.swift` - 启用进程管理 + Steam 提示 + Logger
+  - `WhiskyWineVersion.swift` - 默认版本号修复
+  - `WhiskyApp.swift` - 移除 placeholder + 帮助菜单 URL + 着色器缓存
+  - `WhiskyWineInstaller.swift` - CrossOver 检测增强 + Logger
+  - `Bottle+Extensions.swift` - Logger
+  - `Localizable.xcstrings` - 42 个新本地化字符串
+  - `DXVKSettingsView.swift` - 硬编码中文提取
+  - `ContentView.swift` - 硬编码中文提取
+  - `BottleListEntry.swift` - 硬编码中文提取
+  - `WhiskyWineInstallView.swift` - 硬编码中文提取
+  - `WhiskyWineDownloadView.swift` - 硬编码中文提取
+  - `SettingsView.swift` - 硬编码中文提取
+  - `README.md` - 链接和描述更新
+- **CI**: Build #84 + SwiftLint #89 通过
+- **测试包**: 临时/Whisky.app
+- **时间**: 2026-07-03
+
 ## 关键路径
 - **应用支持目录**: `~/Library/Application Support/com.whisky.Whisky/`
 - **Wine 安装目录**: `Libraries/Wine/{bin, lib, share}`
@@ -447,8 +489,10 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - Proton 10 Release: `proton10`
 
 ## 最后更新
-2026-07-02 - v3.0.0 正式版发布
-  - v3.0.0 从 Pre-Release 转为正式 Release
-  - 上传最新 Whisky-3.0.0.zip（5.8MB，含所有修复）
-  - Release Notes 包含新增功能、修复内容、Steam 限制说明
-  - Release 页面：https://github.com/JiangWanZhengChouYv/Whisky/releases/tag/v3.0.0
+2026-07-03 - P0-P3 全量问题修复
+  - 修复 Sparkle URL、wineVersion 默认值、启用 Running Processes
+  - 补全 42 个本地化字符串，提取硬编码中文
+  - 增强 CrossOver 检测，添加 Steam 兼容性提示
+  - 修复帮助菜单 URL、README 链接、错误处理
+  - GitHub Release 清理（删除 Draft、WhiskyWine 改为 Pre-release）
+  - CI: Build #84 + SwiftLint #89 通过
