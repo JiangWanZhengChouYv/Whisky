@@ -50,8 +50,6 @@ struct WhiskyApp: App {
                     }
                 }
         }
-        // Don't ask me how this works, it just does
-        .handlesExternalEvents(matching: ["{same path of URL?}"])
         .commands {
             CommandGroup(after: .appInfo) {
                 SparkleView(updater: updaterController.updater)
@@ -102,17 +100,12 @@ struct WhiskyApp: App {
             }
             CommandGroup(replacing: .help) {
                 Button("help.website") {
-                    if let url = URL(string: "https://getwhisky.app/") {
+                    if let url = URL(string: "https://github.com/JiangWanZhengChouYv/Whisky") {
                         openURL(url)
                     }
                 }
                 Button("help.github") {
-                    if let url = URL(string: "https://github.com/Whisky-App/Whisky") {
-                        openURL(url)
-                    }
-                }
-                Button("help.discord") {
-                    if let url = URL(string: "https://discord.gg/CsqAfs9CnM") {
+                    if let url = URL(string: "https://github.com/JiangWanZhengChouYv/Whisky") {
                         openURL(url)
                     }
                 }
@@ -210,7 +203,36 @@ struct WhiskyApp: App {
         do {
             try FileManager.default.removeItem(atPath: d3dmPath)
         } catch {
-            return
+            // d3dm 缓存清理失败不阻塞后续 DXVK/SpirV 缓存清理
+        }
+
+        // 遍历所有 bottle，清理 DXVK 状态缓存和 SpirV 缓存
+        for bottle in BottleVM.shared.bottles {
+            let usersPath = bottle.url.appending(path: "drive_c").appending(path: "users")
+            guard FileManager.default.fileExists(atPath: usersPath.path) else { continue }
+
+            guard let userDirs = try? FileManager.default.contentsOfDirectory(
+                at: usersPath,
+                includingPropertiesForKeys: [.isDirectoryKey]) else { continue }
+
+            for userDir in userDirs {
+                let localAppData = userDir
+                    .appending(path: "AppData")
+                    .appending(path: "Local")
+                guard FileManager.default.fileExists(atPath: localAppData.path) else { continue }
+
+                // DXVK 状态缓存目录
+                let dxvkStateCache = localAppData.appending(path: "DXVKStateCache")
+                if FileManager.default.fileExists(atPath: dxvkStateCache.path) {
+                    try? FileManager.default.removeItem(at: dxvkStateCache)
+                }
+
+                // SpirV 缓存目录
+                let spirvCache = localAppData.appending(path: "SpirVCache")
+                if FileManager.default.fileExists(atPath: spirvCache.path) {
+                    try? FileManager.default.removeItem(at: spirvCache)
+                }
+            }
         }
     }
 }
