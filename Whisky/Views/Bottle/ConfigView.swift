@@ -133,6 +133,16 @@ struct ConfigView: View {
                 }
                 .disabled(!bottle.settings.dxvk)
             }
+            if WhiskyWineInstaller.currentMode == .proton11
+                || WhiskyWineInstaller.currentMode == .proton10 {
+                Section("config.title.performance") {
+                    Picker("config.performancePreset", selection: $bottle.settings.performancePreset) {
+                        Text("config.performancePreset.performance").tag(PerformancePreset.performance)
+                        Text("config.performancePreset.balanced").tag(PerformancePreset.balanced)
+                        Text("config.performancePreset.quality").tag(PerformancePreset.quality)
+                    }
+                }
+            }
             Section("config.title.metal", isExpanded: $metalSectionExpanded) {
                 Toggle(isOn: $bottle.settings.metalHud) {
                     Text("config.metalHud")

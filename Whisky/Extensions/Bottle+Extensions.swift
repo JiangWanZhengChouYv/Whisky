@@ -280,6 +280,54 @@ extension Bottle {
         settings.name = newName
     }
 
+    @MainActor
+    func duplicate() {
+        let fileManager = FileManager.default
+        let bottlesDir = BottleData.defaultBottleDir
+        let newBottleURL = bottlesDir.appending(path: UUID().uuidString)
+
+        do {
+            if let bottle = BottleVM.shared.bottles.first(where: { $0.url == url }) {
+                bottle.inFlight = true
+            }
+
+            try fileManager.createDirectory(at: bottlesDir, withIntermediateDirectories: true)
+            try fileManager.copyItem(at: url, to: newBottleURL)
+
+            let newBottle = Bottle(bottleUrl: newBottleURL, inFlight: false, isAvailable: true)
+            let copyName = String(localized: "bottle.duplicate.nameSuffix")
+            newBottle.settings.name = settings.name + copyName
+
+            if !BottleVM.shared.bottlesList.paths.contains(newBottleURL) {
+                BottleVM.shared.bottlesList.paths.append(newBottleURL)
+            }
+            BottleVM.shared.loadBottles()
+
+            if let bottle = BottleVM.shared.bottles.first(where: { $0.url == url }) {
+                bottle.inFlight = false
+            }
+
+            Logger.wineKit.info("Bottle duplicated successfully: \(self.url.path, privacy: .public) -> \(newBottleURL.path, privacy: .public)")
+        } catch {
+            Logger.wineKit.error("Failed to duplicate bottle: \(error)")
+
+            if let bottle = BottleVM.shared.bottles.first(where: { $0.url == url }) {
+                bottle.inFlight = false
+            }
+
+            if FileManager.default.fileExists(atPath: newBottleURL.path) {
+                try? FileManager.default.removeItem(at: newBottleURL)
+            }
+
+            let alert = NSAlert()
+            alert.messageText = String(localized: "bottle.duplicate.failed")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .critical
+            alert.addButton(withTitle: String(localized: "button.ok"))
+            alert.runModal()
+        }
+    }
+
     @MainActor private func showRunError(message: String) {
         let alert = NSAlert()
         alert.messageText = String(localized: "alert.message")

@@ -127,8 +127,13 @@ public class Wine {
             if isDXVKAvailable {
                 try enableDXVK(bottle: bottle)
             } else {
-                print("[Wine] Warning: DXVK is enabled but DXVK files are not available")
+                Logger.wineKit.warning("DXVK is enabled but DXVK files are not available")
             }
+        }
+
+        await MainActor.run {
+            bottle.settings.addRecentlyUsedProgram(url)
+            Logger.wineKit.info("Added to recently used: \(url.lastPathComponent, privacy: .public)")
         }
 
         for await _ in try Self.runWineProcess(

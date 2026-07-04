@@ -46,6 +46,13 @@ struct BottleListEntry: View {
                 }
                 .disabled(!bottle.isAvailable)
                 .labelStyle(.titleAndIcon)
+                Button("button.duplicateBottle", systemImage: "doc.on.doc") {
+                    Task(priority: .userInitiated) {
+                        bottle.duplicate()
+                    }
+                }
+                .disabled(!bottle.isAvailable)
+                .labelStyle(.titleAndIcon)
                 Button("button.removeAlert", systemImage: "trash") {
                     showRemoveAlert(bottle: bottle)
                 }

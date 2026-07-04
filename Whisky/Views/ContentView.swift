@@ -222,7 +222,7 @@ struct ContentView: View {
             .animation(.default, value: bottleVM.bottles)
             .animation(.default, value: bottleFilter)
             .listStyle(.sidebar)
-            .searchable(text: $bottleFilter, placement: .sidebar)
+            .searchable(text: $bottleFilter, placement: .sidebar, prompt: Text("search.placeholder"))
             .onChange(of: newlyCreatedBottleURL) { _, url in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     selected = url

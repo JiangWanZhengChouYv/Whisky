@@ -48,6 +48,7 @@ public struct BottleInfo: Codable, Equatable {
     var name: String = "Bottle"
     var pins: [PinnedProgram] = []
     var blocklist: [URL] = []
+    var recentlyUsedPrograms: [URL] = []
 
     public init() {}
 
@@ -56,6 +57,7 @@ public struct BottleInfo: Codable, Equatable {
         self.name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Bottle"
         self.pins = try container.decodeIfPresent([PinnedProgram].self, forKey: .pins) ?? []
         self.blocklist = try container.decodeIfPresent([URL].self, forKey: .blocklist) ?? []
+        self.recentlyUsedPrograms = try container.decodeIfPresent([URL].self, forKey: .recentlyUsedPrograms) ?? []
     }
 }
 
@@ -143,6 +145,36 @@ public struct BottleDXVKConfig: Codable, Equatable {
     }
 }
 
+public enum PerformancePreset: String, Codable, Equatable, CaseIterable {
+    case performance
+    case balanced
+    case quality
+
+    public func pretty() -> String {
+        switch self {
+        case .performance:
+            return String(localized: "config.performancePreset.performance")
+        case .balanced:
+            return String(localized: "config.performancePreset.balanced")
+        case .quality:
+            return String(localized: "config.performancePreset.quality")
+        }
+    }
+}
+
+public struct BottlePerformanceConfig: Codable, Equatable {
+    var performancePreset: PerformancePreset = .balanced
+
+    public init() {}
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.performancePreset = try container.decodeIfPresent(
+            PerformancePreset.self, forKey: .performancePreset
+        ) ?? .balanced
+    }
+}
+
 public struct BottleSettings: Codable, Equatable {
     static let defaultFileVersion = SemanticVersion(1, 0, 0)
 
@@ -151,12 +183,14 @@ public struct BottleSettings: Codable, Equatable {
     private var wineConfig: BottleWineConfig
     private var metalConfig: BottleMetalConfig
     private var dxvkConfig: BottleDXVKConfig
+    private var performanceConfig: BottlePerformanceConfig
 
     public init() {
         self.info = BottleInfo()
         self.wineConfig = BottleWineConfig()
         self.metalConfig = BottleMetalConfig()
         self.dxvkConfig = BottleDXVKConfig()
+        self.performanceConfig = BottlePerformanceConfig()
     }
 
     // swiftlint:disable line_length
@@ -167,6 +201,7 @@ public struct BottleSettings: Codable, Equatable {
         self.wineConfig = try container.decodeIfPresent(BottleWineConfig.self, forKey: .wineConfig) ?? BottleWineConfig()
         self.metalConfig = try container.decodeIfPresent(BottleMetalConfig.self, forKey: .metalConfig) ?? BottleMetalConfig()
         self.dxvkConfig = try container.decodeIfPresent(BottleDXVKConfig.self, forKey: .dxvkConfig) ?? BottleDXVKConfig()
+        self.performanceConfig = try container.decodeIfPresent(BottlePerformanceConfig.self, forKey: .performanceConfig) ?? BottlePerformanceConfig()
     }
     // swiftlint:enable line_length
 
@@ -205,6 +240,23 @@ public struct BottleSettings: Codable, Equatable {
         set { info.blocklist = newValue }
     }
 
+    /// Recently used programs (most recent first, max 5)
+    public var recentlyUsedPrograms: [URL] {
+        get { return info.recentlyUsedPrograms }
+        set { info.recentlyUsedPrograms = newValue }
+    }
+
+    /// Add a program to the recently used list (most recent first, deduplicated, max 5)
+    public mutating func addRecentlyUsedProgram(_ url: URL) {
+        var programs = info.recentlyUsedPrograms
+        programs.removeAll { $0 == url }
+        programs.insert(url, at: 0)
+        if programs.count > 5 {
+            programs = Array(programs.prefix(5))
+        }
+        info.recentlyUsedPrograms = programs
+    }
+
     public var enhancedSync: EnhancedSync {
         get { return wineConfig.enhancedSync }
         set { wineConfig.enhancedSync = newValue }
@@ -238,6 +290,11 @@ public struct BottleSettings: Codable, Equatable {
     public var dxvkHud: DXVKHUD {
         get {  return dxvkConfig.dxvkHud }
         set { dxvkConfig.dxvkHud = newValue }
+    }
+
+    public var performancePreset: PerformancePreset {
+        get { return performanceConfig.performancePreset }
+        set { performanceConfig.performancePreset = newValue }
     }
 
     @discardableResult
@@ -334,31 +391,46 @@ public struct BottleSettings: Codable, Equatable {
                 wineEnv["WINEESYNC"] = "1"
             }
 
+            applyPerformancePreset(wineEnv: &wineEnv)
+        case .whiskyWine, .crossover:
+            break
+        }
+    }
+
+    private func applyPerformancePreset(wineEnv: inout [String: String]) {
+        Logger.wineKit.info("[Performance Preset] Applying preset: \(self.performancePreset.rawValue, privacy: .public)")
+
+        switch performancePreset {
+        case .performance:
             if dxvk && wineEnv["DXVK_ASYNC"] == nil {
                 wineEnv["DXVK_ASYNC"] = "1"
             }
-
-            if dxvk && wineEnv["DXVK_STATE_CACHE"] == nil {
-                wineEnv["DXVK_STATE_CACHE"] = "1"
-            }
-
-            if dxvk && wineEnv["DXVK_ENABLE_STATE_CACHE"] == nil {
-                wineEnv["DXVK_ENABLE_STATE_CACHE"] = "1"
-            }
-
-            if wineEnv["RADV_PERFTEST"] == nil {
-                wineEnv["RADV_PERFTEST"] = "gpl"
-            }
-
             if wineEnv["vblank_mode"] == nil {
                 wineEnv["vblank_mode"] = "0"
             }
-
             if wineEnv["mesa_glthread"] == nil {
                 wineEnv["mesa_glthread"] = "true"
             }
-        case .whiskyWine, .crossover:
-            break
+            if wineEnv["RADV_PERFTEST"] == nil {
+                wineEnv["RADV_PERFTEST"] = "gpl"
+            }
+        case .balanced:
+            if dxvk && wineEnv["DXVK_ASYNC"] == nil {
+                wineEnv["DXVK_ASYNC"] = "1"
+            }
+            if wineEnv["mesa_glthread"] == nil {
+                wineEnv["mesa_glthread"] = "true"
+            }
+        case .quality:
+            if dxvk && wineEnv["DXVK_STATE_CACHE"] == nil {
+                wineEnv["DXVK_STATE_CACHE"] = "1"
+            }
+            if dxvk && wineEnv["DXVK_ENABLE_STATE_CACHE"] == nil {
+                wineEnv["DXVK_ENABLE_STATE_CACHE"] = "1"
+            }
+            if wineEnv["RADV_PERFTEST"] == nil {
+                wineEnv["RADV_PERFTEST"] = "gpl"
+            }
         }
     }
 }
