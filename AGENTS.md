@@ -501,6 +501,54 @@ Whisky 是一个 macOS 上的 Wine 图形化管理工具，用于在 Mac 上运�
 - **测试包**: 临时/Whisky.app
 - **时间**: 2026-07-04
 
+### 27. 瓶子复制 & 拖拽安装 & 最近使用 & 性能预设 & 按钮中文化
+- **功能**:
+  - 瓶子复制：右键菜单一键深拷贝瓶子，自动命名"副本"，新UUID独立目录
+  - 拖拽安装：程序Tab支持拖拽.exe/.msi文件创建快捷方式，高亮提示+确认对话框
+  - 最近使用：每个瓶子记录最近5个使用的程序，顶部显示一键运行
+  - 性能预设：ProtonWine模式下三档预设（性能优先/平衡/画质优先），自动应用环境变量
+  - 按钮中文化：优化10处翻译，更符合中文习惯（"确定"→"好的"等）
+  - 搜索占位符：瓶子搜索框添加中文占位提示"搜索瓶子..."
+- **瓶子复制**:
+  - `duplicate()` 方法深拷贝整个瓶子目录
+  - 新瓶子名称为"原名 副本"，支持本地化
+  - 复制过程显示 inFlight 状态，失败时清理半成品
+- **拖拽安装**:
+  - 程序列表区域支持 `.onDrop` 拖拽
+  - 拖拽进入显示虚线边框高亮
+  - 放下后弹出确认对话框，自动去重添加
+- **最近使用**:
+  - `BottleSettings` 新增 `recentlyUsedPrograms` 属性
+  - 运行程序时自动更新，去重+最多5个
+  - 程序Tab顶部显示，为空时不显示
+- **性能预设**:
+  - `PerformancePreset` 枚举：performance / balanced / quality
+  - 性能优先：DXVK_ASYNC + vblank_mode=0 + mesa_glthread + RADV_PERFTEST=gpl
+  - 平衡：DXVK_ASYNC + mesa_glthread（默认）
+  - 画质优先：DXVK_STATE_CACHE + RADV_PERFTEST=gpl
+  - 预设不覆盖用户手动设置的环境变量
+- **按钮中文化优化**:
+  - `button.ok`: 确定 → 好的
+  - `button.createBottle`: 创建容器 → 创建瓶子
+  - `button.removeAlert.info`: 容器 → 瓶子
+  - `tab.config`: 容器配置 → 瓶子配置
+  - `config.avx`: 查看 AVX 支持 → 启用 AVX 支持
+  - `wine.clearShaderCaches`: 清空 Shader 缓存 → 清理着色器缓存
+  - `winetricks.category.benchmarks`: Benchmarks → 基准测试
+  - `config.dxr.info`: 格式优化
+  - `showAlertOnFirstLaunch.button.dontMove`: 不要移动 → 不移动
+  - `button.winetricks`: Winetrick... → Winetricks...（补全s）
+- **文件**:
+  - `Bottle+Extensions.swift` - 瓶子复制方法
+  - `BottleListEntry.swift` - 复制右键菜单
+  - `ProgramsView.swift` - 拖拽安装 + 最近使用 UI
+  - `BottleSettings.swift` - 最近使用 + 性能预设模型
+  - `Wine.swift` - 运行时更新最近使用 + 预设环境变量
+  - `ConfigView.swift` - 性能预设选择器 UI
+  - `ContentView.swift` - 搜索框占位符
+  - `Localizable.xcstrings` - 新增/优化本地化字符串
+- **时间**: 2026-07-04
+
 ## 关键路径
 - **应用支持目录**: `~/Library/Application Support/com.whisky.Whisky/`
 - **Wine 安装目录**: `Libraries/Wine/{bin, lib, share}`
@@ -536,8 +584,10 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - Proton 10 Release: `proton10`
 
 ## 最后更新
-2026-07-04 - ProtonWine 模式 Steam 兼容性优化
-  - WhiskyWine/ProtonWine WINEDLLPATH 改为多路径（x86_64-windows + i386-windows）
-  - Steam 兼容性提示优化，提取到本地化字符串
-  - DXVK HUD 设置 UI 已存在，无需新增
+2026-07-04 - 瓶子复制 & 拖拽安装 & 最近使用 & 性能预设 & 按钮中文化
+  - 瓶子复制：右键深拷贝，新UUID独立目录
+  - 拖拽安装：exe/msi拖拽创建快捷方式
+  - 最近使用：每瓶5个，一键运行
+  - 性能预设：ProtonWine三档（性能/平衡/画质）
+  - 按钮中文化：10处翻译优化
   - 测试包：临时/Whisky.app
