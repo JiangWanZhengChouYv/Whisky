@@ -117,21 +117,23 @@ struct ConfigView: View {
                     }
                 }
             }
-            Section("config.title.dxvk", isExpanded: $dxvkSectionExpanded) {
-                Toggle(isOn: $bottle.settings.dxvk) {
-                    Text("config.dxvk")
+            if WhiskyWineInstaller.currentMode != .crossover {
+                Section("config.title.dxvk", isExpanded: $dxvkSectionExpanded) {
+                    Toggle(isOn: $bottle.settings.dxvk) {
+                        Text("config.dxvk")
+                    }
+                    Toggle(isOn: $bottle.settings.dxvkAsync) {
+                        Text("config.dxvk.async")
+                    }
+                    .disabled(!bottle.settings.dxvk)
+                    Picker("config.dxvkHud", selection: $bottle.settings.dxvkHud) {
+                        Text("config.dxvkHud.full").tag(DXVKHUD.full)
+                        Text("config.dxvkHud.partial").tag(DXVKHUD.partial)
+                        Text("config.dxvkHud.fps").tag(DXVKHUD.fps)
+                        Text("config.dxvkHud.off").tag(DXVKHUD.off)
+                    }
+                    .disabled(!bottle.settings.dxvk)
                 }
-                Toggle(isOn: $bottle.settings.dxvkAsync) {
-                    Text("config.dxvk.async")
-                }
-                .disabled(!bottle.settings.dxvk)
-                Picker("config.dxvkHud", selection: $bottle.settings.dxvkHud) {
-                    Text("config.dxvkHud.full").tag(DXVKHUD.full)
-                    Text("config.dxvkHud.partial").tag(DXVKHUD.partial)
-                    Text("config.dxvkHud.fps").tag(DXVKHUD.fps)
-                    Text("config.dxvkHud.off").tag(DXVKHUD.off)
-                }
-                .disabled(!bottle.settings.dxvk)
             }
             if WhiskyWineInstaller.currentMode == .proton11
                 || WhiskyWineInstaller.currentMode == .proton10 {

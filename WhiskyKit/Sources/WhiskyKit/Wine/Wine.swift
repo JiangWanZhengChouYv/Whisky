@@ -168,6 +168,12 @@ public class Wine {
         if !args.contains("-cef-disable-gpu") {
             args.append("-cef-disable-gpu")
         }
+        if !args.contains("-cef-in-process-gpu") {
+            args.append("-cef-in-process-gpu")
+        }
+        if !args.contains("-cef-disable-sandbox") {
+            args.append("-cef-disable-sandbox")
+        }
     }
 
     private static func applySteamCompatibilityEnvironment(environment: inout [String: String]) {

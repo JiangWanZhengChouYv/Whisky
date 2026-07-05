@@ -625,10 +625,40 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **规范文档**: .trae/specs/protonwine-steam-rootcause/
 - **时间**: 2026-07-04
 
+### 29. Steam登录黑屏修复 & 检查更新跳转 & CrossOver配置审查
+- **功能**:
+  - Steam 登录窗口 CEF 参数增强（-cef-in-process-gpu、-cef-disable-sandbox）
+  - 检查更新按钮改为跳转 GitHub Latest Release
+  - CrossOver 模式配置审查 & DXVK 冲突修复
+- **Steam 登录黑屏修复**:
+  - 新增 CEF 参数：`-cef-in-process-gpu`（GPU 进程内运行，避免多进程问题）
+  - 新增 CEF 参数：`-cef-disable-sandbox`（禁用沙盒，Wine 下沙盒经常出问题）
+  - 保留已有参数：`-cef-disable-gpu`
+  - 所有参数自动去重
+  - 文件: `Wine.swift` - `applySteamCompatibilityArgs`
+- **检查更新按钮跳转**:
+  - Sparkle 自动更新无法使用（缺少 SUFeedURL），按钮一直 disabled
+  - 改为：点击按钮直接在浏览器打开 GitHub Latest Release
+  - URL: https://github.com/JiangWanZhengChouYv/Whisky/releases/latest
+  - 按钮文本："查看最新版本"（英文：View Latest Release）
+  - 按钮始终可点击
+  - 文件: `SparkleView.swift`, `Localizable.xcstrings`
+- **CrossOver 配置审查**:
+  - 审查结果：性能预设不影响 CrossOver ✅（逻辑正确）
+  - 发现问题：DXVK 配置对 CrossOver 生效，可能与内置 D3DMetal/GPTK 冲突
+  - 修复：BottleSettings.swift 中 CrossOver 模式跳过 DXVK 环境变量
+  - 修复：ConfigView.swift 中 CrossOver 模式隐藏 DXVK Section
+  - 其他审查项：MSYNC ESYNC 欺骗对 CrossOver 适用（D3DM 需要）、环境变量配置完整
+- **文件**:
+  - `Wine.swift` - Steam CEF 参数增强
+  - `SparkleView.swift` - 检查更新跳转 GitHub
+  - `BottleSettings.swift` - CrossOver DXVK 冲突修复
+  - `ConfigView.swift` - CrossOver 隐藏 DXVK Section
+  - `Localizable.xcstrings` - 按钮文本更新
+- **时间**: 2026-07-05
+
 ## 最后更新
-2026-07-04 - ProtonWine Steam 无法运行根因分析
-  - 确认根本原因：steamwebhelper(CEF) 与纯上游 Wine 的兼容性问题
-  - Gcenx wine-staging 是纯净上游 Wine，不包含 Steam 兼容性 hack（Issue #159 权威确认）
-  - CrossOver 能运行 Steam 的关键差异：D3DMetal/DXMT/GPTK/CEF 补丁
-  - 当前代码配置已是最优，问题根因是 Wine 引擎限制
-  - 缓解方案分级：短期可行（Steam 降级参数）/ 中期探索（STEAMOS 环境变量）/ 不可行（自行编译 Wine）
+2026-07-05 - Steam登录黑屏修复 & 检查更新跳转 & CrossOver配置审查
+  - Steam CEF 参数增强：新增 -cef-in-process-gpu、-cef-disable-sandbox
+  - 检查更新按钮改为跳转 GitHub Latest Release
+  - CrossOver 配置审查，修复 DXVK 与内置 D3DMetal 冲突问题

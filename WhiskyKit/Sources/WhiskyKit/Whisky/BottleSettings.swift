@@ -333,22 +333,27 @@ public struct BottleSettings: Codable, Equatable {
 
     // swiftlint:disable:next cyclomatic_complexity
     public func environmentVariables(wineEnv: inout [String: String]) {
-        if dxvk {
-            wineEnv.updateValue("d3d10core,d3d11=n,b", forKey: "WINEDLLOVERRIDES")
-            switch dxvkHud {
-            case .full:
-                wineEnv.updateValue("full", forKey: "DXVK_HUD")
-            case .partial:
-                wineEnv.updateValue("devinfo,fps,frametimes", forKey: "DXVK_HUD")
-            case .fps:
-                wineEnv.updateValue("fps", forKey: "DXVK_HUD")
-            case .off:
-                break
+        switch WhiskyWineInstaller.currentMode {
+        case .proton11, .proton10, .whiskyWine:
+            if dxvk {
+                wineEnv.updateValue("d3d10core,d3d11=n,b", forKey: "WINEDLLOVERRIDES")
+                switch dxvkHud {
+                case .full:
+                    wineEnv.updateValue("full", forKey: "DXVK_HUD")
+                case .partial:
+                    wineEnv.updateValue("devinfo,fps,frametimes", forKey: "DXVK_HUD")
+                case .fps:
+                    wineEnv.updateValue("fps", forKey: "DXVK_HUD")
+                case .off:
+                    break
+                }
             }
-        }
 
-        if dxvkAsync {
-            wineEnv.updateValue("1", forKey: "DXVK_ASYNC")
+            if dxvkAsync {
+                wineEnv.updateValue("1", forKey: "DXVK_ASYNC")
+            }
+        case .crossover:
+            break
         }
 
         switch enhancedSync {
