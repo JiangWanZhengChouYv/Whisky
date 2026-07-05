@@ -657,8 +657,22 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
   - `Localizable.xcstrings` - 按钮文本更新
 - **时间**: 2026-07-05
 
+### 30. Steam登录窗口渲染参数增强（GPU合成/DirectComposition/zygote）
+- **功能**: 针对登录窗口黑屏但鼠标正常的渲染问题，新增 3 个 CEF 参数
+- **问题现象**: 登录窗口黑屏，但鼠标指针会变化（箭头/I 形），说明 CEF 在运行只是渲染层有问题
+- **新增参数**:
+  - `-cef-disable-gpu-compositing` — 禁用 GPU 合成，强制软件合成（最可能有效）
+  - `-cef-disable-direct-composition` — 禁用 DirectComposition（Windows GPU 合成机制）
+  - `-cef-no-zygote` — 禁用 zygote 进程，减少多进程问题
+- **已有参数**:
+  - `-cef-disable-gpu` — 禁用 GPU 加速
+  - `-cef-in-process-gpu` — GPU 进程内运行
+  - `-cef-disable-sandbox` — 禁用沙盒
+- **参数总数**: 6 个 CEF 兼容参数
+- **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
+- **时间**: 2026-07-06
+
 ## 最后更新
-2026-07-05 - Steam登录黑屏修复 & 检查更新跳转 & CrossOver配置审查
-  - Steam CEF 参数增强：新增 -cef-in-process-gpu、-cef-disable-sandbox
-  - 检查更新按钮改为跳转 GitHub Latest Release
-  - CrossOver 配置审查，修复 DXVK 与内置 D3DMetal 冲突问题
+2026-07-06 - Steam登录窗口渲染参数增强（GPU合成/DirectComposition/zygote）
+  - 新增 3 个 CEF 渲染参数：-cef-disable-gpu-compositing、-cef-disable-direct-composition、-cef-no-zygote
+  - 共 6 个 Steam CEF 兼容参数，尝试修复登录窗口黑屏但鼠标正常的问题

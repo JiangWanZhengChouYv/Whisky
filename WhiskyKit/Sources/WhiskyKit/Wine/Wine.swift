@@ -174,6 +174,15 @@ public class Wine {
         if !args.contains("-cef-disable-sandbox") {
             args.append("-cef-disable-sandbox")
         }
+        if !args.contains("-cef-disable-gpu-compositing") {
+            args.append("-cef-disable-gpu-compositing")
+        }
+        if !args.contains("-cef-disable-direct-composition") {
+            args.append("-cef-disable-direct-composition")
+        }
+        if !args.contains("-cef-no-zygote") {
+            args.append("-cef-no-zygote")
+        }
     }
 
     private static func applySteamCompatibilityEnvironment(environment: inout [String: String]) {
