@@ -388,7 +388,6 @@ public struct BottleSettings: Codable, Equatable {
         case .proton11, .proton10:
             if wineEnv["WINEESYNC"] == nil && wineEnv["WINEMSYNC"] == nil {
                 wineEnv["WINEMSYNC"] = "1"
-                wineEnv["WINEESYNC"] = "1"
             }
 
             applyPerformancePreset(wineEnv: &wineEnv)
@@ -405,21 +404,12 @@ public struct BottleSettings: Codable, Equatable {
             if dxvk && wineEnv["DXVK_ASYNC"] == nil {
                 wineEnv["DXVK_ASYNC"] = "1"
             }
-            if wineEnv["vblank_mode"] == nil {
-                wineEnv["vblank_mode"] = "0"
-            }
-            if wineEnv["mesa_glthread"] == nil {
-                wineEnv["mesa_glthread"] = "true"
-            }
-            if wineEnv["RADV_PERFTEST"] == nil {
-                wineEnv["RADV_PERFTEST"] = "gpl"
+            if dxvk && wineEnv["DXVK_STATE_CACHE"] == nil {
+                wineEnv["DXVK_STATE_CACHE"] = "1"
             }
         case .balanced:
             if dxvk && wineEnv["DXVK_ASYNC"] == nil {
                 wineEnv["DXVK_ASYNC"] = "1"
-            }
-            if wineEnv["mesa_glthread"] == nil {
-                wineEnv["mesa_glthread"] = "true"
             }
         case .quality:
             if dxvk && wineEnv["DXVK_STATE_CACHE"] == nil {
@@ -427,9 +417,6 @@ public struct BottleSettings: Codable, Equatable {
             }
             if dxvk && wineEnv["DXVK_ENABLE_STATE_CACHE"] == nil {
                 wineEnv["DXVK_ENABLE_STATE_CACHE"] = "1"
-            }
-            if wineEnv["RADV_PERFTEST"] == nil {
-                wineEnv["RADV_PERFTEST"] = "gpl"
             }
         }
     }

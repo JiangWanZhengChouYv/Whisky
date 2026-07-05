@@ -136,11 +136,50 @@ public class Wine {
             Logger.wineKit.info("Added to recently used: \(url.lastPathComponent, privacy: .public)")
         }
 
-        for await _ in try Self.runWineProcess(
+        var args = args
+        if isSteamProgram(url: url) {
+            applySteamCompatibilityArgs(args: &args)
+        }
+
+        let fileHandle = try makeFileHandle()
+        fileHandle.writeApplicaitonInfo()
+        fileHandle.writeInfo(for: bottle)
+
+        var wineEnv = constructWineEnvironment(for: bottle, programURL: url, environment: environment)
+
+        for await _ in try runWineProcess(
             name: url.lastPathComponent,
             args: ["start", "/unix", url.path(percentEncoded: false)] + args,
-            bottle: bottle, environment: environment
+            environment: wineEnv,
+            fileHandle: fileHandle
         ) { }
+    }
+
+    private static func isSteamProgram(url: URL) -> Bool {
+        switch WhiskyWineInstaller.currentMode {
+        case .proton11, .proton10:
+            return url.path.lowercased().contains("steam")
+        case .whiskyWine, .crossover:
+            return false
+        }
+    }
+
+    private static func applySteamCompatibilityArgs(args: inout [String]) {
+        if !args.contains("-cef-disable-gpu") {
+            args.append("-cef-disable-gpu")
+        }
+    }
+
+    private static func applySteamCompatibilityEnvironment(environment: inout [String: String]) {
+        if environment["STEAMOS"] == nil {
+            environment["STEAMOS"] = "1"
+        }
+
+        environment.removeValue(forKey: "ROSETTA_ADVERTISE_AVX")
+
+        if environment["WINEMSYNC"] != nil {
+            environment.removeValue(forKey: "WINEESYNC")
+        }
     }
 
     public static func generateRunCommand(
@@ -281,7 +320,7 @@ public class Wine {
 
     /// Construct an environment merging the bottle values with the given values
     private static func constructWineEnvironment(
-        for bottle: Bottle, environment: [String: String] = [:]
+        for bottle: Bottle, programURL: URL? = nil, environment: [String: String] = [:]
     ) -> [String: String] {
         let wineDataDir = WhiskyWineInstaller.shareFolder.appendingPathComponent("wine")
         let wineBinPath = WhiskyWineInstaller.binFolder.path
@@ -302,8 +341,16 @@ public class Wine {
         }
 
         bottle.settings.environmentVariables(wineEnv: &result)
-        guard !environment.isEmpty else { return result }
+        guard !environment.isEmpty else {
+            if let programURL = programURL, isSteamProgram(url: programURL) {
+                applySteamCompatibilityEnvironment(environment: &result)
+            }
+            return result
+        }
         result.merge(environment, uniquingKeysWith: { $1 })
+        if let programURL = programURL, isSteamProgram(url: programURL) {
+            applySteamCompatibilityEnvironment(environment: &result)
+        }
         return result
     }
 

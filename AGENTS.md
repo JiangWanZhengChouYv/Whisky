@@ -583,11 +583,52 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - Proton 11 Release: `proton11`
 - Proton 10 Release: `proton10`
 
+### 28. ProtonWine Steam 无法运行根因分析
+- **功能**: 深入诊断 ProtonWine 模式下 Steam 无法运行的根因，确认是 Wine 引擎限制而非配置问题
+- **根本原因**: steamwebhelper(CEF) 兼容性问题
+  - Steam 客户端 UI 完全依赖 steamwebhelper 进程，基于 CEF (Chromium Embedded Framework)
+  - 在纯上游 Wine 下，CEF 经常崩溃或无响应，导致 Steam 黑屏
+  - 这不是 D3D 问题、显卡驱动问题或 DXVK 配置问题，而是 CEF 与 Wine 的兼容性问题
+- **Gcenx wine-staging 限制（权威确认）**:
+  - Gcenx 在 GitHub Issue #159 (2026-04-27) 明确表态：
+    "These packages are now purely source builds of Winehq source releases. DXMT & Steam won't work out-of-box using purely upstream wine."
+    "Outside of CrossOver you'd want to compile wine from source with the changes outlined on DXMT GitHub."
+  - Gcenx wine-staging 是纯净上游 Wine 源码构建，不包含任何 Steam/DXMT 兼容性 hack
+  - 没有任何用户报告在 Gcenx wine-staging 上成功运行 Steam
+  - Gcenx 将此问题关闭为 not_planned——设计选择，不是 bug
+  - Issue 链接: https://github.com/Gcenx/macOS_Wine_builds/issues/159
+- **CrossOver 能运行 Steam 的关键差异**:
+  - D3DMetal: D3D10/11/12 → Metal 直译（CodeWeavers 专有）
+  - DXMT: D3D11 → Metal 开源翻译层（需 Wine 补丁）
+  - Apple GPTK libd3dshared: Apple 官方 D3D 翻译
+  - steamwebhelper 兼容性修复: 针对 CEF 的专门补丁
+  - ESync/MSync: 多线程同步优化
+- **当前代码配置评估**:
+  - WINEDLLOVERRIDES `d3d10core,d3d11=n,b` — ✅ 正确（Gcenx 确认不应 override dxgi）
+  - WINEDLLPATH 多路径 — ✅ 正确
+  - DXVK-macOS 仅含 d3d10core+d3d11 — ✅ 正确（Gcenx 确认 macOS 不需要 dxgi）
+  - MSYNC+ESYNC 同时启用 — ⚠️ ProtonWine 无 D3DM，ESYNC 欺骗无意义
+  - ROSETTA_ADVERTISE_AVX=1 — ⚠️ 可能导致 CEF 检测到 AVX 后启用 AVX 优化路径，Rosetta 模拟不完整导致崩溃
+  - mesa_glthread/RADV_PERFTEST — ❌ Linux Mesa 驱动变量，macOS 无效
+  - 缺少 Steam 启动参数 — ❌ 缺少 -cef-disable-gpu 等关键参数
+  - 缺少 steam.cfg — ❌ 缺少防更新配置
+- **缓解方案分级评估**:
+  - 短期可行: Steam 降级参数 + steam.cfg 防更新 + CEF 禁用 GPU 参数
+    （注意: Wine 9/10 时代有效，11.7+ 不保证）
+  - 中期探索: STEAMOS/STEAM_RUNTIME 环境变量 + Windows 版本调整
+  - 不可行: 自行编译 Wine + DXMT 补丁（工作量过大，超出项目范围）
+- **结论**:
+  - ProtonWine 模式下 Steam 无法运行是 Wine 引擎层面的限制，非配置问题
+  - CrossOver 是唯一开箱即用支持 Steam 的方案
+  - 当前代码配置已是最优，v3.0.1 的 WINEDLLPATH/DXVK 优化是正确的
+  - 建议维持"Steam 推荐使用 CrossOver 模式"的提示
+- **规范文档**: .trae/specs/protonwine-steam-rootcause/
+- **时间**: 2026-07-04
+
 ## 最后更新
-2026-07-04 - 瓶子复制 & 拖拽安装 & 最近使用 & 性能预设 & 按钮中文化
-  - 瓶子复制：右键深拷贝，新UUID独立目录
-  - 拖拽安装：exe/msi拖拽创建快捷方式
-  - 最近使用：每瓶5个，一键运行
-  - 性能预设：ProtonWine三档（性能/平衡/画质）
-  - 按钮中文化：10处翻译优化
-  - 测试包：临时/Whisky.app
+2026-07-04 - ProtonWine Steam 无法运行根因分析
+  - 确认根本原因：steamwebhelper(CEF) 与纯上游 Wine 的兼容性问题
+  - Gcenx wine-staging 是纯净上游 Wine，不包含 Steam 兼容性 hack（Issue #159 权威确认）
+  - CrossOver 能运行 Steam 的关键差异：D3DMetal/DXMT/GPTK/CEF 补丁
+  - 当前代码配置已是最优，问题根因是 Wine 引擎限制
+  - 缓解方案分级：短期可行（Steam 降级参数）/ 中期探索（STEAMOS 环境变量）/ 不可行（自行编译 Wine）

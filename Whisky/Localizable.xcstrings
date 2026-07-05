@@ -12539,13 +12539,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam may not work properly in ProtonWine mode (black screen issue). For the best Steam experience, use CrossOver mode which includes Apple GPTK and D3DMetal for better compatibility."
+            "value" : "Steam compatibility settings have been automatically applied (CEF GPU acceleration disabled, STEAMOS environment variable, etc.). Steam's CEF(Chromium) component may still not work properly on pure Wine - this is a Wine engine limitation. If it doesn't work, try CrossOver mode or native Mac Steam."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam 在 ProtonWine 模式下可能无法正常运行（黑屏问题）。建议使用 CrossOver 模式运行 Steam，CrossOver 内置 Apple GPTK 和 D3DMetal，兼容性更好。"
+            "value" : "已自动为 Steam 应用兼容配置（禁用 CEF GPU 加速、STEAMOS 环境变量等）。Steam 的 CEF(Chromium) 组件在纯 Wine 上可能仍无法正常运行，这是 Wine 引擎限制。如无法使用，建议使用 CrossOver 模式或 Mac 原生版 Steam。"
           }
         }
       }
