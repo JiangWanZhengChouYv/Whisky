@@ -723,9 +723,40 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
 - **时间**: 2026-07-06
 
+### 34. Steam登录黑屏最终分析与结论
+- **尝试历程**:
+  1. 11个CEF参数（最初格式错误 `-cef-xxx`，后修复为 `--xxx`）
+  2. `-noreactlogin` 参数（强制旧版非Chromium登录界面）
+  3. SwiftShader纯软件渲染（`--use-gl=swiftshader`）
+  4. 禁用Viz合成器、DirectComposition、GPU光栅化等
+  5. 用户自行测试：Porting Kit/Wine原生同样黑屏
+- **最终结论**: 这是**Wine引擎层面的限制**，非配置问题
+  - Steam客户端基于CEF（Chromium Embedded Framework）
+  - CEF使用多进程模型（Browser进程+Renderer进程+GPU进程）
+  - 纯上游Wine对CEF多进程支持不完整，特别是：
+    - `CreateProcess` 信号处理
+    - 共享内存/DMA-BUF
+    - GPU进程沙盒
+    - DirectComposition合成
+  - 即使禁用GPU（`--disable-gpu`），CEF仍会尝试创建进程和窗口，只是渲染管线不同
+  - 鼠标指针变化说明CEF进程在运行，但渲染层与Wine不兼容
+- **CrossOver为什么能行**（CodeWeavers专有技术）：
+  - **CEF兼容性补丁**：专门针对Steam CEF多进程模型的Wine补丁
+  - **D3DMetal**：专有D3D→Metal翻译层（非开源）
+  - **进程间通信修复**：修复Wine中CEF子进程创建/通信问题
+  - **窗口管理器适配**：适配CEF窗口合成需求
+  - 这些补丁不开源，纯上游Wine无法获得
+- **当前最优策略**:
+  - ProtonWine模式：保留12个兼容参数，继续尝试缓解
+  - **强烈推荐**：使用CrossOver模式运行Steam（唯一可靠方案）
+  - **替代方案**：SteamCMD命令行安装游戏（无GUI）
+- **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
+- **时间**: 2026-07-06
+
 ## 最后更新
-2026-07-06 - Steam CEF 参数格式修复（关键Bug！）
-  - 修复：所有 CEF 参数从 `-cef-xxx` 改为 `--xxx` 双横线格式
-  - 根因：Chromium/CEF 只识别 `--` 格式，之前 11 个参数全都没生效
-  - 现在 12 个参数（1个Steam + 11个CEF）全部使用正确格式
-  - 这应该是真正有效的修复！
+2026-07-06 - Steam登录黑屏最终分析与结论
+  - 完整尝试历程：11个CEF参数 + noreactlogin + SwiftShader + 禁用合成器
+  - 用户确认：Porting Kit/Wine原生同样黑屏
+  - 结论：Wine引擎层CEF多进程支持不完整，非配置问题
+  - CrossOver优势：专有CEF补丁 + D3DMetal + 进程通信修复
+  - 建议：CrossOver模式运行Steam，或SteamCMD命令行方案
