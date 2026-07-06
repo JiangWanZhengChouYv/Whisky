@@ -700,9 +700,32 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
 - **时间**: 2026-07-06
 
+### 33. Steam CEF 参数格式修复（关键Bug！）
+- **功能**: 修复所有 CEF 参数格式错误，从 `-cef-xxx` 改为 `--xxx`
+- **问题根因**: 之前 11 个 CEF 参数全部使用 `-cef-xxx` 单横线格式
+  - 例如：`-cef-disable-gpu`、`-cef-in-process-gpu`
+  - 但 Chromium/CEF **只识别 `--` 双横线格式**
+  - 所以之前所有 CEF 参数都**没有生效**！
+- **修复**:
+  - `--disable-gpu`（原 `-cef-disable-gpu`）
+  - `--in-process-gpu`（原 `-cef-in-process-gpu`）
+  - `--disable-sandbox`（原 `-cef-disable-sandbox`）
+  - `--disable-gpu-compositing`（原 `-cef-disable-gpu-compositing`）
+  - `--disable-direct-composition`（原 `-cef-disable-direct-composition`）
+  - `--no-zygote`（原 `-cef-no-zygote`）
+  - `--use-gl=swiftshader`（原 `-cef-use-gl=swiftshader`）
+  - `--disable-features=VizDisplayCompositor`（原 `-cef-disable-features=VizDisplayCompositor`）
+  - `--enable-low-end-device-mode`（原 `-cef-enable-low-end-device-mode`）
+  - `--disable-gpu-rasterization`（原 `-cef-disable-gpu-rasterization`）
+  - `--disable-oop-rasterization`（原 `-cef-disable-oop-rasterization`）
+- **保持正确格式**:
+  - `-noreactlogin`（Steam 自身参数，单横线正确）
+- **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
+- **时间**: 2026-07-06
+
 ## 最后更新
-2026-07-06 - Steam登录窗口 -noreactlogin 绕过方案
-  - 搜索到关键参数 `-noreactlogin`，强制 Steam 使用旧版非 Chromium 登录界面
-  - 多个教程确认此参数可绕过 CEF 登录窗口
-  - 共 12 个 Steam 兼容参数（11个CEF + 1个noreactlogin）
-  - 等待用户测试旧版登录界面是否正常
+2026-07-06 - Steam CEF 参数格式修复（关键Bug！）
+  - 修复：所有 CEF 参数从 `-cef-xxx` 改为 `--xxx` 双横线格式
+  - 根因：Chromium/CEF 只识别 `--` 格式，之前 11 个参数全都没生效
+  - 现在 12 个参数（1个Steam + 11个CEF）全部使用正确格式
+  - 这应该是真正有效的修复！

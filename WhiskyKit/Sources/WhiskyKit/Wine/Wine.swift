@@ -165,42 +165,28 @@ public class Wine {
     }
 
     private static func applySteamCompatibilityArgs(args: inout [String]) {
-        // -noreactlogin: 强制使用旧版非 Chromium 登录界面，绕过 CEF 黑屏问题
+        // Steam 自身参数：强制使用旧版非 Chromium 登录界面
         if !args.contains("-noreactlogin") {
             args.append("-noreactlogin")
         }
-        if !args.contains("-cef-disable-gpu") {
-            args.append("-cef-disable-gpu")
-        }
-        if !args.contains("-cef-in-process-gpu") {
-            args.append("-cef-in-process-gpu")
-        }
-        if !args.contains("-cef-disable-sandbox") {
-            args.append("-cef-disable-sandbox")
-        }
-        if !args.contains("-cef-disable-gpu-compositing") {
-            args.append("-cef-disable-gpu-compositing")
-        }
-        if !args.contains("-cef-disable-direct-composition") {
-            args.append("-cef-disable-direct-composition")
-        }
-        if !args.contains("-cef-no-zygote") {
-            args.append("-cef-no-zygote")
-        }
-        if !args.contains("-cef-use-gl=swiftshader") {
-            args.append("-cef-use-gl=swiftshader")
-        }
-        if !args.contains("-cef-disable-features=VizDisplayCompositor") {
-            args.append("-cef-disable-features=VizDisplayCompositor")
-        }
-        if !args.contains("-cef-enable-low-end-device-mode") {
-            args.append("-cef-enable-low-end-device-mode")
-        }
-        if !args.contains("-cef-disable-gpu-rasterization") {
-            args.append("-cef-disable-gpu-rasterization")
-        }
-        if !args.contains("-cef-disable-oop-rasterization") {
-            args.append("-cef-disable-oop-rasterization")
+        // Chromium/CEF 参数：必须使用 -- 双横线格式（单横线 -cef-xxx 不生效）
+        let cefArgs = [
+            "--disable-gpu",
+            "--in-process-gpu",
+            "--disable-sandbox",
+            "--disable-gpu-compositing",
+            "--disable-direct-composition",
+            "--no-zygote",
+            "--use-gl=swiftshader",
+            "--disable-features=VizDisplayCompositor",
+            "--enable-low-end-device-mode",
+            "--disable-gpu-rasterization",
+            "--disable-oop-rasterization"
+        ]
+        for cefArg in cefArgs {
+            if !args.contains(cefArg) {
+                args.append(cefArg)
+            }
         }
     }
 
