@@ -26,6 +26,8 @@ public class WhiskyWineInstaller {
         case crossover
         case proton11
         case proton10
+        // TODO: Sine mode - 预留，暂不启用
+        // case sine
 
         public var isDownloadable: Bool {
             switch self {
@@ -103,6 +105,9 @@ public class WhiskyWineInstaller {
             return applicationFolder.appending(path: "Libraries/Proton11")
         case .proton10:
             return applicationFolder.appending(path: "Libraries/Proton10")
+        // TODO: Sine mode - 预留，暂不启用
+        // case .sine:
+        //     return applicationFolder.appending(path: "Libraries/Sine")
         }
     }
 
