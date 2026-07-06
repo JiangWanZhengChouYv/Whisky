@@ -723,7 +723,20 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
 - **时间**: 2026-07-06
 
-### 34. Steam登录黑屏最终分析与结论
+### 34. CrossOver Steam 支持深度分析
+- **分析对象**: CrossOver 26.2.0 (~/Applications/CrossOver.app)
+- **关键发现**:
+  1. **SuppressAltLoader 注册表**: 针对 steam/steamsysinfo 禁用替代加载器
+  2. **NtCreateUserProcess 补丁**: cxcompatdb.so 中对进程创建系统调用的特殊处理
+  3. **apply_in_process_hacks**: 进程内 hack 机制，针对 CEF 进程注入修复
+  4. **兼容性数据库 (cxcompatdb.so)**: 程序识别和针对性修复策略
+  5. **Apple GPTK**: 专有 D3D→Metal 翻译层 (lib64/apple_gptk/)
+  6. **DXVK 库**: lib/dxvk/ 目录包含 d3d9/d3d10/d3d11 DLL
+- **结论**: CrossOver 的 Steam 支持全部是 Wine 二进制层面的专有补丁，不开源，无法复制
+- **分析报告**: 临时/CrossOver/CrossOver-Steam分析报告.txt
+- **时间**: 2026-07-06
+
+### 35. Steam登录黑屏最终结论
 - **尝试历程**:
   1. 11个CEF参数（最初格式错误 `-cef-xxx`，后修复为 `--xxx`）
   2. `-noreactlogin` 参数（强制旧版非Chromium登录界面）
