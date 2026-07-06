@@ -686,7 +686,23 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
 - **时间**: 2026-07-06
 
+### 32. Steam登录窗口 -noreactlogin 绕过方案
+- **功能**: 搜索到 `-noreactlogin` 参数，强制 Steam 使用旧版非 Chromium 登录界面
+- **搜索结论**:
+  - 多个教程确认 `-noreactlogin` 可以让 Steam 切换到"老版本"登录界面
+  - "再次打开Steam时已经更换为旧版本即可正常"
+  - 完全绕开基于 CEF 的登录窗口，改用旧的 Win32 对话框
+  - 这是 Windows 上广泛使用的 Steam 登录修复方案
+- **实现**:
+  - 在 `applySteamCompatibilityArgs` 中添加 `-noreactlogin` 参数
+  - 保持之前的 11 个 CEF 参数（旧版登录界面可能仍需要某些 CEF 支持）
+  - 参数总数: 12 个 Steam 兼容参数
+- **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
+- **时间**: 2026-07-06
+
 ## 最后更新
-2026-07-06 - Steam登录窗口SwiftShader纯软件渲染尝试
-  - 新增 5 个 CEF 参数：SwiftShader 软件渲染、Viz 合成器禁用、低端设备模式等
-  - 共 11 个 Steam CEF 兼容参数，继续尝试修复登录窗口黑屏
+2026-07-06 - Steam登录窗口 -noreactlogin 绕过方案
+  - 搜索到关键参数 `-noreactlogin`，强制 Steam 使用旧版非 Chromium 登录界面
+  - 多个教程确认此参数可绕过 CEF 登录窗口
+  - 共 12 个 Steam 兼容参数（11个CEF + 1个noreactlogin）
+  - 等待用户测试旧版登录界面是否正常

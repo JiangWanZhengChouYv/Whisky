@@ -165,6 +165,10 @@ public class Wine {
     }
 
     private static func applySteamCompatibilityArgs(args: inout [String]) {
+        // -noreactlogin: 强制使用旧版非 Chromium 登录界面，绕过 CEF 黑屏问题
+        if !args.contains("-noreactlogin") {
+            args.append("-noreactlogin")
+        }
         if !args.contains("-cef-disable-gpu") {
             args.append("-cef-disable-gpu")
         }
