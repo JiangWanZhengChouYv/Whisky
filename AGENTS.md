@@ -672,7 +672,21 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
 - **时间**: 2026-07-06
 
+### 31. Steam登录窗口SwiftShader纯软件渲染尝试
+- **功能**: GPU 参数无效后，尝试 SwiftShader 纯软件渲染 + 更多 Chromium 特性禁用
+- **问题**: 前 6 个 CEF 参数（含 GPU 禁用）仍无法解决登录窗口黑屏
+- **新增参数**（5个）:
+  - `-cef-use-gl=swiftshader` — SwiftShader 纯软件 OpenGL 渲染（最关键）
+  - `-cef-disable-features=VizDisplayCompositor` — 禁用 Viz 显示合成器
+  - `-cef-enable-low-end-device-mode` — 低端设备模式，减少 GPU 依赖
+  - `-cef-disable-gpu-rasterization` — 禁用 GPU 光栅化
+  - `-cef-disable-oop-rasterization` — 禁用离屏光栅化
+- **参数总数**: 11 个 CEF 兼容参数
+- **说明**: 如果 SwiftShader 也不行，说明纯上游 Wine 确实不支持 Steam CEF，这是引擎级限制
+- **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
+- **时间**: 2026-07-06
+
 ## 最后更新
-2026-07-06 - Steam登录窗口渲染参数增强（GPU合成/DirectComposition/zygote）
-  - 新增 3 个 CEF 渲染参数：-cef-disable-gpu-compositing、-cef-disable-direct-composition、-cef-no-zygote
-  - 共 6 个 Steam CEF 兼容参数，尝试修复登录窗口黑屏但鼠标正常的问题
+2026-07-06 - Steam登录窗口SwiftShader纯软件渲染尝试
+  - 新增 5 个 CEF 参数：SwiftShader 软件渲染、Viz 合成器禁用、低端设备模式等
+  - 共 11 个 Steam CEF 兼容参数，继续尝试修复登录窗口黑屏

@@ -183,6 +183,21 @@ public class Wine {
         if !args.contains("-cef-no-zygote") {
             args.append("-cef-no-zygote")
         }
+        if !args.contains("-cef-use-gl=swiftshader") {
+            args.append("-cef-use-gl=swiftshader")
+        }
+        if !args.contains("-cef-disable-features=VizDisplayCompositor") {
+            args.append("-cef-disable-features=VizDisplayCompositor")
+        }
+        if !args.contains("-cef-enable-low-end-device-mode") {
+            args.append("-cef-enable-low-end-device-mode")
+        }
+        if !args.contains("-cef-disable-gpu-rasterization") {
+            args.append("-cef-disable-gpu-rasterization")
+        }
+        if !args.contains("-cef-disable-oop-rasterization") {
+            args.append("-cef-disable-oop-rasterization")
+        }
     }
 
     private static func applySteamCompatibilityEnvironment(environment: inout [String: String]) {
