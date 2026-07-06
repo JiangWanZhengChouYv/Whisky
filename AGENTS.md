@@ -772,10 +772,55 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
 - **时间**: 2026-07-06
 
+### 36. Wine源码魔改项目 - Sine（正弦）重命名
+- **功能**: 将 Wine 源码重命名为 Sine（正弦），作为独立的魔改 Wine 引擎项目
+- **项目位置**: `sine/` 目录（基于 Wine 11.12 源码）
+- **Git**: 独立本地 Git 仓库，不提交到远程（用户要求）
+- **重命名内容**:
+  - 包名: Wine → Sine
+  - 主程序名: wine → sine
+  - 版本字符串: wine-11.12 → sine-11.12
+  - 帮助文本: Usage: wine → Usage: sine
+  - 错误前缀: "wine: " → "sine: "
+  - loader 路径引用: loader/wine → loader/sine
+  - 临时目录: /tmp/.wine-%u → /tmp/.sine-%u
+  - plist bundle id: org.winehq.wine → org.sine.sine
+  - desktop 文件: Name=Wine → Name=Sine, Exec=wine → Exec=sine
+  - winver 显示名: Wine → Sine
+- **保持不变**:
+  - 工具名（winebuild, winedump, widl, wmc, wrc, winegcc, winemaker 等）
+  - 服务名（wineserver）
+  - Windows DLL 名和 API 名（Wine 核心功能）
+  - wine_srcdir 等内部变量名
+- **重命名脚本**: `sine/tools/rename_to_sine.py`
+- **编译成功验证**:
+  - `./tools/wine/sine --version` → `sine-11.12`
+  - `./tools/wine/sine --help` → 显示 `Usage: sine ...`
+  - 完整构建无错误（Wine build complete.）
+- **编译命令**:
+  ```bash
+  cd sine
+  export PATH="/opt/homebrew/opt/llvm/bin:/opt/homebrew/opt/bison/bin:$PATH"
+  ./configure --enable-win64 --disable-win16 --without-x --without-fontconfig
+  make -j8
+  ```
+- **依赖**: llvm (llvm-dlltool), bison, mingw-w64
+- **时间**: 2026-07-06
+
+### 37. Whisky预留Sine模式底层代码
+- **功能**: 在 Whisky 代码中预留 Sine 模式的底层代码，暂不启用，UI 不显示
+- **实现**:
+  - WineMode 枚举中添加注释占位
+  - 路径配置预留扩展点
+  - 为后续接入 Sine 引擎做准备
+- **文件**: `WhiskyWineInstaller.swift` 等
+- **CI**: Build #88 + SwiftLint #93 通过
+- **时间**: 2026-07-06
+
 ## 最后更新
-2026-07-06 - Steam登录黑屏最终分析与结论
-  - 完整尝试历程：11个CEF参数 + noreactlogin + SwiftShader + 禁用合成器
-  - 用户确认：Porting Kit/Wine原生同样黑屏
-  - 结论：Wine引擎层CEF多进程支持不完整，非配置问题
-  - CrossOver优势：专有CEF补丁 + D3DMetal + 进程通信修复
-  - 建议：CrossOver模式运行Steam，或SteamCMD命令行方案
+2026-07-06 - Sine重命名与编译成功
+  - Wine源码重命名为Sine（正弦），主程序名/版本/帮助文本均已更改
+  - 工具名保持不变（winebuild/winedump等），避免构建系统过度改动
+  - 完整编译通过，sine --version 输出 sine-11.12
+  - Whisky代码预留Sine模式底层代码，暂不启用
+  - GitHub Actions Build & SwiftLint 均通过
