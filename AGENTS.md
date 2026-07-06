@@ -723,7 +723,7 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **文件**: `Wine.swift` - `applySteamCompatibilityArgs`
 - **时间**: 2026-07-06
 
-### 34. CrossOver Steam 支持深度分析
+### 34. CrossOver Steam 支持深度分析 & Wine魔改研究
 - **分析对象**: CrossOver 26.2.0 (~/Applications/CrossOver.app)
 - **关键发现**:
   1. **SuppressAltLoader 注册表**: 针对 steam/steamsysinfo 禁用替代加载器
@@ -732,7 +732,13 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
   4. **兼容性数据库 (cxcompatdb.so)**: 程序识别和针对性修复策略
   5. **Apple GPTK**: 专有 D3D→Metal 翻译层 (lib64/apple_gptk/)
   6. **DXVK 库**: lib/dxvk/ 目录包含 d3d9/d3d10/d3d11 DLL
-- **结论**: CrossOver 的 Steam 支持全部是 Wine 二进制层面的专有补丁，不开源，无法复制
+- **结论**: CrossOver 的 Steam 支持全部是 Wine 二进制层面的专有补丁，不开源
+- **Wine魔改研究**:
+  - NtCreateUserProcess: `dlls/ntdll/unix/process.c:682`（最核心，推荐优先改）
+  - DLL加载: `LdrLoadDll()` in `dlls/ntdll/loader.c:3457`
+  - apphelp.dll: 全是 stub，建议硬编码 Steam 规则
+  - 优先级: NtCreateUserProcess > 进程名检测 > LdrLoadDll > apphelp > GPTK
+- **研究报告**: sine/crossover-reference/Wine魔改研究报告.md
 - **分析报告**: 临时/CrossOver/CrossOver-Steam分析报告.txt
 - **时间**: 2026-07-06
 
