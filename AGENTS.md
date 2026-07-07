@@ -817,8 +817,31 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **CI**: Build #88 + SwiftLint #93 通过
 - **时间**: 2026-07-06
 
+### 38. Sine GitHub 公开仓库发布
+- **功能**: 将 Sine 项目发布为 GitHub 公开仓库
+- **仓库地址**: https://github.com/JiangWanZhengChouYv/sine
+- **仓库描述**: Sine - 专为游戏优化的 macOS Wine 引擎
+- **可见性**: Public（公开）
+- **许可证**: LGPL-2.1（保持 Wine 原有许可证）
+- **仓库清理**:
+  - 移除 `crossover-reference/` 目录（移至 临时/）
+  - 删除 `tools/rename_to_sine.py` 重命名脚本
+  - 添加 `.gitignore` 排除构建产物
+- **新增文件**:
+  - `README.md` - 项目介绍、特性、编译说明、许可证
+  - `.github/workflows/build.yml` - GitHub Actions 自动编译工作流
+- **CI**: 推送后自动触发 macOS 构建检查
+- **时间**: 2026-07-07
+
+### 39. Whisky 编译与状态确认
+- **编译**: Release 构建通过，无错误
+- **Git**: 工作区 clean，main 分支与 origin/main 同步
+- **CI**: Build #88 + SwiftLint #93 均为 success
+- **测试包**: 已生成至 临时/Whisky.app
+- **时间**: 2026-07-07
+
 ## 最后更新
-2026-07-06 - Sine重命名与编译成功
+2026-07-07 - Sine GitHub仓库发布 & Whisky状态确认
   - Wine源码重命名为Sine（正弦），主程序名/版本/帮助文本均已更改
   - 工具名保持不变（winebuild/winedump等），避免构建系统过度改动
   - 完整编译通过，sine --version 输出 sine-11.12
