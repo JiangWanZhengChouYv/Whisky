@@ -840,10 +840,44 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **测试包**: 已生成至 临时/Whisky.app
 - **时间**: 2026-07-07
 
+### 40. Sine Actions CI修复 & Whisky最终检查
+- **功能**: 修复Sine GitHub Actions编译失败问题，完成Whisky最终检查
+- **Sine Actions修复**:
+  - 问题1: 缺少autoconf命令 → 添加`brew install autoconf automake libtool`
+  - 问题2: llvm-mingw在GitHub Actions上不存在 → 移除llvm-mingw，使用系统clang配合llvm lld
+  - 问题3: PATH顺序调整，确保系统clang优先于llvm clang
+  - 问题4（已定位）: lld已从llvm分离为独立formula，需单独安装 `brew install lld`
+  - 问题5（已定位）: 需要mingw-w64提供Windows头文件和库
+  - 当前状态: 已提交修复，待网络恢复后推送验证
+- **本地验证**:
+  - Sine本地configure成功：`./configure --enable-win64 --disable-win16 --without-x --without-fontconfig`
+  - Sine本地编译成功：`./tools/wine/sine --version` → `sine-11.12`
+- **Whisky最终检查**:
+  - 编译: ✅ Release构建成功
+  - Git: ✅ 工作区clean，与origin同步
+  - Actions: ✅ Build #88 + SwiftLint #93 通过
+  - 测试包: ✅ 已生成至 临时/Whisky.app
+- **文件**:
+  - `sine/.github/workflows/build.yml` - CI配置修复（添加lld和mingw-w64）
+- **时间**: 2026-07-08
+
+### 41. Sine Actions lld/mingw-w64修复
+- **功能**: 修复Sine GitHub Actions中PE交叉编译失败的问题
+- **问题根因**:
+  - Homebrew的llvm不再包含lld，需单独安装`lld`包
+  - configure需要mingw-w64提供Windows头文件和库
+  - 错误信息：`PE cross-compilation is required for aarch64-apple-darwin25.4.0`
+- **修复方案**:
+  - 在`brew install`中添加`lld`和`mingw-w64`
+  - 命令：`brew install llvm lld mingw-w64 bison autoconf automake libtool`
+- **状态**: 本地已修改，待网络恢复后推送验证
+- **文件**:
+  - `sine/.github/workflows/build.yml` - 添加lld和mingw-w64依赖
+- **时间**: 2026-07-08
+
 ## 最后更新
-2026-07-07 - Sine GitHub仓库发布 & Whisky状态确认
-  - Wine源码重命名为Sine（正弦），主程序名/版本/帮助文本均已更改
-  - 工具名保持不变（winebuild/winedump等），避免构建系统过度改动
-  - 完整编译通过，sine --version 输出 sine-11.12
-  - Whisky代码预留Sine模式底层代码，暂不启用
-  - GitHub Actions Build & SwiftLint 均通过
+2026-07-08 - Sine Actions lld/mingw-w64修复
+  - 定位到PE交叉编译失败根因：缺少lld和mingw-w64
+  - 修复方案：brew install添加lld和mingw-w64
+  - 本地修改完成，待网络恢复后推送验证
+  - Whisky测试包已生成至临时/Whisky.app
