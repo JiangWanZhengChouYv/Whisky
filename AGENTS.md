@@ -876,8 +876,9 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **时间**: 2026-07-08
 
 ## 最后更新
-2026-07-08 - Whisky推送成功 & Sine推送待网络恢复
-  - Whisky: 已推送，Actions Build + SwiftLint 均通过
-  - Sine: lld+mingw-w64修复已本地提交，网络不稳定导致推送失败
-  - Sine本地编译验证通过：./tools/wine/sine --version → sine-11.12
+2026-07-08 - Sine SSH配置修复 & Actions构建中
+  - Sine: 已改为SSH协议（git@github.com），推送成功
+  - Sine: 修复Makefile兼容性，添加wine二进制输出
+  - Sine: Actions正在编译中（Wine编译需约10-15分钟）
+  - Whisky: Actions Build + SwiftLint 均通过
   - 测试包：临时/Whisky.app已就绪
