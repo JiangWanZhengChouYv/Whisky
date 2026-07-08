@@ -105,3 +105,13 @@ Whisky.xcarchive/
 
 sine/SourcePackages/
 sine/
+
+# Xcode workspace checks
+IDEWorkspaceChecks.plist
+
+# Swift Package Manager
+Package.resolved
+.swiftpm/
+
+# Pre-built binaries
+Libraries/cabextract
