@@ -876,8 +876,8 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **时间**: 2026-07-08
 
 ## 最后更新
-2026-07-08 - Sine Actions lld/mingw-w64修复
-  - 定位到PE交叉编译失败根因：缺少lld和mingw-w64
-  - 修复方案：brew install添加lld和mingw-w64
-  - 本地修改完成，待网络恢复后推送验证
-  - Whisky测试包已生成至临时/Whisky.app
+2026-07-08 - Whisky推送成功 & Sine推送待网络恢复
+  - Whisky: 已推送，Actions Build + SwiftLint 均通过
+  - Sine: lld+mingw-w64修复已本地提交，网络不稳定导致推送失败
+  - Sine本地编译验证通过：./tools/wine/sine --version → sine-11.12
+  - 测试包：临时/Whisky.app已就绪
