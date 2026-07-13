@@ -971,10 +971,34 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
   - `Whisky.xcodeproj/project.pbxproj` - 添加 GPTKSettingsView 到项目
 - **时间**: 2026-07-13
 
+### 46. Git 整理 & 任务板执行
+- **功能**: 整理 Whisky 和 Sine 的 Git 状态，执行任务板任务
+- **Whisky Git 整理**:
+  - 修复 .gitignore：移除 AGENTS.md 错误忽略规则
+  - 所有变更已提交并推送到 origin/main
+- **Sine Git 整理**:
+  - 恢复被误删的 .gitignore
+  - 添加 compile_commands.json 和 include/stamp-h 到忽略规则
+  - 删除误提交的构建产物（34006 行）
+  - 所有变更已提交并推送到 origin/main
+- **Sine CLI 测试**:
+  - `sine --version` → sine-11.12 ✅
+  - `sine --help` → 正确显示帮助信息 ✅
+  - 基本 CLI 功能正常
+- **Whisky 编译**:
+  - Release 构建成功（BUILD SUCCEEDED）
+  - 测试包已生成到临时/Whisky.app
+- **GPTK 下载问题**:
+  - 当前下载 URL 返回 404，等待用户提供有效下载地址
+- **文件**:
+  - `.gitignore`（Whisky 和 Sine）
+  - `AGENTS.md`
+- **时间**: 2026-07-13
+
 ## 最后更新
-2026-07-13 - WhiskyWine/ProtonWine GPTK 集成
-  - GPTK 安装工具类编写完成（installGPTK/uninstallGPTK/isGPTKInstalled/gptkFolder）
-  - Wine 环境变量集成完成（WINE_GPTK_LIBD3DSHARED_PATH + WINEDLLPATH 优先级）
-  - 设置页面 GPTK UI 完成（安装状态显示、安装/卸载按钮、CrossOver 隐藏）
-  - 编译验证通过，测试包已生成
+2026-07-13 - Git 整理 & 任务板执行
+  - Whisky 和 Sine Git 状态整理完成，均已推送到远程
+  - Sine CLI 基本功能测试通过
+  - Whisky Release 构建成功，测试包已生成
+  - GPTK 下载 URL 需要更新（当前 404）
   - Whisky: 编译/Git/Actions 全部正常，测试包已生成（14MB）
