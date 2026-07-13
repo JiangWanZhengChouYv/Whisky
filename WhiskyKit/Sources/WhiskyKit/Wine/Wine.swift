@@ -358,6 +358,8 @@ public class Wine {
 
         if WhiskyWineInstaller.currentMode == .crossover {
             applyCrossOverEnvironment(to: &result)
+        } else {
+            applyGPTKEnvironment(to: &result)
         }
 
         bottle.settings.environmentVariables(wineEnv: &result)
@@ -393,6 +395,8 @@ public class Wine {
 
         if WhiskyWineInstaller.currentMode == .crossover {
             applyCrossOverEnvironment(to: &result)
+        } else {
+            applyGPTKEnvironment(to: &result)
         }
 
         guard !environment.isEmpty else { return result }
@@ -420,6 +424,8 @@ public class Wine {
 
         if WhiskyWineInstaller.currentMode == .crossover {
             applyCrossOverEnvironment(to: &result)
+        } else {
+            applyGPTKEnvironment(to: &result)
         }
 
         guard !environment.isEmpty else { return result }
@@ -427,10 +433,28 @@ public class Wine {
         return result
     }
 
+    private static func applyGPTKEnvironment(to env: inout [String: String]) {
+        let gptkFolder = WhiskyWineInstaller.gptkFolder(for: WhiskyWineInstaller.currentMode)
+        let libd3dsharedPath = gptkFolder
+            .appendingPathComponent("external")
+            .appendingPathComponent("libd3dshared.dylib")
+
+        if FileManager.default.fileExists(atPath: libd3dsharedPath.path) {
+            env["WINE_GPTK_LIBD3DSHARED_PATH"] = libd3dsharedPath.path
+        }
+    }
+
     private static func defaultWineDLLPath() -> String {
         let wineLibFolder = WhiskyWineInstaller.libFolder
         let fileManager = FileManager.default
         var paths: [String] = []
+
+        let gptkX64Path = WhiskyWineInstaller.gptkFolder(for: WhiskyWineInstaller.currentMode)
+            .appendingPathComponent("wine")
+            .appendingPathComponent("x86_64-windows")
+        if fileManager.fileExists(atPath: gptkX64Path.path) {
+            paths.append(gptkX64Path.path)
+        }
 
         let x64DllPath = wineLibFolder
             .appendingPathComponent("wine")

@@ -32,6 +32,7 @@ struct SettingsView: View {
     @State private var isLoadingVersion = false
     @State private var installStatuses: [WhiskyWineInstaller.WineMode: Bool] = [:]
     @State private var dxvkRefreshCounter: Int = 0
+    @State private var gptkRefreshCounter: Int = 0
 
     var body: some View {
         Form {
@@ -116,6 +117,10 @@ struct SettingsView: View {
                 refreshInstallStatuses()
                 dxvkRefreshCounter += 1
             }, refreshTrigger: dxvkRefreshCounter)
+            GPTKSettingsView(onInstalled: {
+                refreshInstallStatuses()
+                gptkRefreshCounter += 1
+            }, refreshTrigger: gptkRefreshCounter)
             Section("settings.updates") {
                 Toggle("settings.toggle.whisky.updates", isOn: $whiskyUpdate)
                 Toggle("settings.toggle.whiskywine.updates", isOn: $checkWhiskyWineUpdates)
@@ -140,6 +145,7 @@ struct SettingsView: View {
                     loadWineVersion()
                     refreshInstallStatuses()
                     dxvkRefreshCounter += 1
+                    gptkRefreshCounter += 1
                 }
                 pendingMode = nil
             }
