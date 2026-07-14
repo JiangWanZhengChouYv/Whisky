@@ -1009,6 +1009,7 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
 - **大小**: 约 64MB
 - **上传位置**: GitHub Release `gptk-v3.0`
 - **下载 URL**: `https://github.com/JiangWanZhengChouYv/Whisky/releases/download/gptk-v3.0/gptk-3.0.tar.gz`
+- **上传代理**: 上传大文件时设定 `ALL_PROXY=http://127.0.0.1:7890` 加速
 - **文件**:
   - `WhiskyWineInstaller+GPTK.swift` - 更新下载 URL
 - **时间**: 2026-07-14
