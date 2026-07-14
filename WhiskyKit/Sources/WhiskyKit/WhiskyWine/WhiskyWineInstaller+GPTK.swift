@@ -21,9 +21,9 @@ import Foundation
 extension WhiskyWineInstaller {
     // MARK: - GPTK
 
-    /// GPTK download URL (Apple Game Porting Toolkit 3.0-3)
+    /// GPTK download URL (Apple Game Porting Toolkit 3.0)
     public static let gptkDownloadURL = URL(string:
-        "https://github.com/JiangWanZhengChouYv/Whisky/releases/download/gptk/gptk-3.0-3.tar.gz"
+        "https://github.com/JiangWanZhengChouYv/Whisky/releases/download/gptk-v3.0/gptk-3.0.tar.gz"
     )!
 
     /// Returns the GPTK folder URL for the specified wine mode

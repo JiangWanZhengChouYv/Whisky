@@ -995,10 +995,27 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
   - `AGENTS.md`
 - **时间**: 2026-07-13
 
+### 47. GPTK 真实来源接入 & 下载修复
+- **功能**: 找到 GPTK 真实来源，修复下载 404 问题
+- **GPTK 来源**:
+  - 从 Sikarugir 模板中提取 D3DMetal (Apple GPTK)
+  - 位置: `~/Library/Application Support/Sikarugir/Template/Template-1.0.11.app/Contents/Frameworks/renderer/d3dmetal`
+  - `apple_gptk` 是 `d3dmetal` 的符号链接
+- **GPTK 内容**:
+  - **DLLs** (x86_64): d3d11.dll, d3d12.dll, dxgi.dll, nvapi64.dll, nvngx.dll, atidxx64.dll
+  - **D3DMetal.framework**: Apple 官方 D3D→Metal 翻译框架
+  - **libd3dshared.dylib**: GPTK 共享库
+- **打包格式**: `gptk-3.0.tar.gz`，结构 `{external/, wine/x86_64-windows/}`
+- **大小**: 约 64MB
+- **上传位置**: GitHub Release `gptk-v3.0`
+- **下载 URL**: `https://github.com/JiangWanZhengChouYv/Whisky/releases/download/gptk-v3.0/gptk-3.0.tar.gz`
+- **文件**:
+  - `WhiskyWineInstaller+GPTK.swift` - 更新下载 URL
+- **时间**: 2026-07-14
+
 ## 最后更新
-2026-07-13 - Git 整理 & 任务板执行
-  - Whisky 和 Sine Git 状态整理完成，均已推送到远程
-  - Sine CLI 基本功能测试通过
-  - Whisky Release 构建成功，测试包已生成
-  - GPTK 下载 URL 需要更新（当前 404）
-  - Whisky: 编译/Git/Actions 全部正常，测试包已生成（14MB）
+2026-07-14 - GPTK 真实来源接入 & 下载修复
+  - 从 Sikarugir 模板中提取 Apple GPTK (D3DMetal)
+  - 打包为 gptk-3.0.tar.gz（64MB），包含 DLLs + D3DMetal.framework + libd3dshared.dylib
+  - 更新下载 URL 指向 gptk-v3.0 Release
+  - Whisky Release 构建成功，测试包已更新
