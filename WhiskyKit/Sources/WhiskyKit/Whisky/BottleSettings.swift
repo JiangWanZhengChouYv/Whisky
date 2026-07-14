@@ -145,6 +145,17 @@ public struct BottleDXVKConfig: Codable, Equatable {
     }
 }
 
+public struct BottleGPTKConfig: Codable, Equatable {
+    var gptk: Bool = true
+
+    public init() {}
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.gptk = try container.decodeIfPresent(Bool.self, forKey: .gptk) ?? true
+    }
+}
+
 public enum PerformancePreset: String, Codable, Equatable, CaseIterable {
     case performance
     case balanced
@@ -183,6 +194,7 @@ public struct BottleSettings: Codable, Equatable {
     private var wineConfig: BottleWineConfig
     private var metalConfig: BottleMetalConfig
     private var dxvkConfig: BottleDXVKConfig
+    private var gptkConfig: BottleGPTKConfig
     private var performanceConfig: BottlePerformanceConfig
 
     public init() {
@@ -190,6 +202,7 @@ public struct BottleSettings: Codable, Equatable {
         self.wineConfig = BottleWineConfig()
         self.metalConfig = BottleMetalConfig()
         self.dxvkConfig = BottleDXVKConfig()
+        self.gptkConfig = BottleGPTKConfig()
         self.performanceConfig = BottlePerformanceConfig()
     }
 
@@ -201,6 +214,7 @@ public struct BottleSettings: Codable, Equatable {
         self.wineConfig = try container.decodeIfPresent(BottleWineConfig.self, forKey: .wineConfig) ?? BottleWineConfig()
         self.metalConfig = try container.decodeIfPresent(BottleMetalConfig.self, forKey: .metalConfig) ?? BottleMetalConfig()
         self.dxvkConfig = try container.decodeIfPresent(BottleDXVKConfig.self, forKey: .dxvkConfig) ?? BottleDXVKConfig()
+        self.gptkConfig = try container.decodeIfPresent(BottleGPTKConfig.self, forKey: .gptkConfig) ?? BottleGPTKConfig()
         self.performanceConfig = try container.decodeIfPresent(BottlePerformanceConfig.self, forKey: .performanceConfig) ?? BottlePerformanceConfig()
     }
     // swiftlint:enable line_length
@@ -290,6 +304,11 @@ public struct BottleSettings: Codable, Equatable {
     public var dxvkHud: DXVKHUD {
         get {  return dxvkConfig.dxvkHud }
         set { dxvkConfig.dxvkHud = newValue }
+    }
+
+    public var gptk: Bool {
+        get { return gptkConfig.gptk }
+        set { gptkConfig.gptk = newValue }
     }
 
     public var performancePreset: PerformancePreset {

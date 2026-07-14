@@ -1014,9 +1014,26 @@ xcodebuild -scheme Whisky -configuration Release -derivedDataPath ./build build 
   - `WhiskyWineInstaller+GPTK.swift` - 更新下载 URL
 - **时间**: 2026-07-14
 
+### 48. 瓶子设置增强 - DXVK/GPTK 显示控制优化
+- **功能**: 优化瓶子设置页面中 DXVK 和 GPTK 的显示与控制逻辑
+- **DXVK 优化**:
+  - 始终显示 DXVK Section，未安装时灰色不可用
+  - CrossOver 模式下 DXVK Section 灰色不可用
+- **GPTK 优化**:
+  - 新增 GPTK 开关项，默认开启
+  - GPTK 未安装时灰色不可用
+  - CrossOver 模式下不显示 GPTK
+- **Metal 优化**: CrossOver 模式下 Metal Section 灰色不可用
+- **代码修改**:
+  - `BottleSettings.swift` - 新增 `BottleGPTKConfig` 和 `gptk` 属性
+  - `ConfigView.swift` - DXVK/GPTK/Metal Section 状态控制
+  - `Wine.swift` - GPTK 条件启用逻辑
+  - `Localizable.xcstrings` - GPTK 本地化字符串
+- **时间**: 2026-07-14
+
 ## 最后更新
-2026-07-14 - GPTK 真实来源接入 & 下载修复
-  - 从 Sikarugir 模板中提取 Apple GPTK (D3DMetal)
-  - 打包为 gptk-3.0.tar.gz（64MB），包含 DLLs + D3DMetal.framework + libd3dshared.dylib
-  - 更新下载 URL 指向 gptk-v3.0 Release
-  - Whisky Release 构建成功，测试包已更新
+2026-07-14 - 瓶子设置增强完成
+  - DXVK 始终显示，未安装/CrossOver 时灰色
+  - 新增 GPTK 开关项，默认开启，未安装时灰色
+  - Metal 在 CrossOver 模式下灰色
+  - Release 构建成功，测试包已更新

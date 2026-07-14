@@ -39,6 +39,7 @@ struct ConfigView: View {
     @AppStorage("wineSectionExpanded") private var wineSectionExpanded: Bool = true
     @AppStorage("dxvkSectionExpanded") private var dxvkSectionExpanded: Bool = true
     @AppStorage("metalSectionExpanded") private var metalSectionExpanded: Bool = true
+    @AppStorage("gptkSectionExpanded") private var gptkSectionExpanded: Bool = true
 
     var body: some View {
         Form {
@@ -117,23 +118,31 @@ struct ConfigView: View {
                     }
                 }
             }
-            if WhiskyWineInstaller.currentMode != .crossover {
-                Section("config.title.dxvk", isExpanded: $dxvkSectionExpanded) {
-                    Toggle(isOn: $bottle.settings.dxvk) {
-                        Text("config.dxvk")
-                    }
-                    Toggle(isOn: $bottle.settings.dxvkAsync) {
-                        Text("config.dxvk.async")
-                    }
-                    .disabled(!bottle.settings.dxvk)
-                    Picker("config.dxvkHud", selection: $bottle.settings.dxvkHud) {
-                        Text("config.dxvkHud.full").tag(DXVKHUD.full)
-                        Text("config.dxvkHud.partial").tag(DXVKHUD.partial)
-                        Text("config.dxvkHud.fps").tag(DXVKHUD.fps)
-                        Text("config.dxvkHud.off").tag(DXVKHUD.off)
-                    }
-                    .disabled(!bottle.settings.dxvk)
+            Section("config.title.dxvk", isExpanded: $dxvkSectionExpanded) {
+                Toggle(isOn: $bottle.settings.dxvk) {
+                    Text("config.dxvk")
                 }
+                Toggle(isOn: $bottle.settings.dxvkAsync) {
+                    Text("config.dxvk.async")
+                }
+                .disabled(!bottle.settings.dxvk)
+                Picker("config.dxvkHud", selection: $bottle.settings.dxvkHud) {
+                    Text("config.dxvkHud.full").tag(DXVKHUD.full)
+                    Text("config.dxvkHud.partial").tag(DXVKHUD.partial)
+                    Text("config.dxvkHud.fps").tag(DXVKHUD.fps)
+                    Text("config.dxvkHud.off").tag(DXVKHUD.off)
+                }
+                .disabled(!bottle.settings.dxvk)
+            }
+            .disabled(!WhiskyWineInstaller.isDXVKInstalled(mode: WhiskyWineInstaller.currentMode)
+                || WhiskyWineInstaller.currentMode == .crossover)
+            if WhiskyWineInstaller.currentMode != .crossover {
+                Section("config.title.gptk", isExpanded: $gptkSectionExpanded) {
+                    Toggle(isOn: $bottle.settings.gptk) {
+                        Text("config.gptk")
+                    }
+                }
+                .disabled(!WhiskyWineInstaller.isGPTKInstalled(mode: WhiskyWineInstaller.currentMode))
             }
             if WhiskyWineInstaller.currentMode == .proton11
                 || WhiskyWineInstaller.currentMode == .proton10 {
@@ -163,6 +172,7 @@ struct ConfigView: View {
                     }
                 }
             }
+            .disabled(WhiskyWineInstaller.currentMode == .crossover)
         }
         .formStyle(.grouped)
         .animation(.whiskyDefault, value: wineSectionExpanded)

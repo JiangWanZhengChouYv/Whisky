@@ -349,7 +349,7 @@ public class Wine {
             "WINEPREFIX": bottle.url.path,
             "WINEDEBUG": "fixme-all",
             "GST_DEBUG": "1",
-            "WINEDLLPATH": defaultWineDLLPath(),
+            "WINEDLLPATH": defaultWineDLLPath(gptkEnabled: bottle.settings.gptk),
             "WINEDATADIR": wineDataDir.path,
             "PATH": "\(wineBinPath):\(currentPath)",
             "ROSETTA_ADVERTISE_AVX": "1",
@@ -358,7 +358,7 @@ public class Wine {
 
         if WhiskyWineInstaller.currentMode == .crossover {
             applyCrossOverEnvironment(to: &result)
-        } else {
+        } else if bottle.settings.gptk {
             applyGPTKEnvironment(to: &result)
         }
 
@@ -415,7 +415,7 @@ public class Wine {
             "WINEPREFIX": bottle.url.path,
             "WINEDEBUG": "fixme-all",
             "GST_DEBUG": "1",
-            "WINEDLLPATH": defaultWineDLLPath(),
+            "WINEDLLPATH": defaultWineDLLPath(gptkEnabled: bottle.settings.gptk),
             "WINEDATADIR": wineDataDir.path,
             "PATH": "\(wineBinPath):\(currentPath)",
             "ROSETTA_ADVERTISE_AVX": "1",
@@ -424,7 +424,7 @@ public class Wine {
 
         if WhiskyWineInstaller.currentMode == .crossover {
             applyCrossOverEnvironment(to: &result)
-        } else {
+        } else if bottle.settings.gptk {
             applyGPTKEnvironment(to: &result)
         }
 
@@ -444,16 +444,18 @@ public class Wine {
         }
     }
 
-    private static func defaultWineDLLPath() -> String {
+    private static func defaultWineDLLPath(gptkEnabled: Bool = true) -> String {
         let wineLibFolder = WhiskyWineInstaller.libFolder
         let fileManager = FileManager.default
         var paths: [String] = []
 
-        let gptkX64Path = WhiskyWineInstaller.gptkFolder(for: WhiskyWineInstaller.currentMode)
-            .appendingPathComponent("wine")
-            .appendingPathComponent("x86_64-windows")
-        if fileManager.fileExists(atPath: gptkX64Path.path) {
-            paths.append(gptkX64Path.path)
+        if gptkEnabled {
+            let gptkX64Path = WhiskyWineInstaller.gptkFolder(for: WhiskyWineInstaller.currentMode)
+                .appendingPathComponent("wine")
+                .appendingPathComponent("x86_64-windows")
+            if fileManager.fileExists(atPath: gptkX64Path.path) {
+                paths.append(gptkX64Path.path)
+            }
         }
 
         let x64DllPath = wineLibFolder
