@@ -114,7 +114,7 @@ struct RunningProcessesView: View {
         let output: String?
 
         do {
-            output = try await Wine.runWine(["tasklist.exe"], bottle: bottle)
+            output = try await Wine.runWine(["tasklist.exe", "/FO", "CSV"], bottle: bottle)
         } catch {
             logger.error("Error running tasklist.exe: \(error.localizedDescription, privacy: .public)")
             loadState = .error
@@ -122,12 +122,21 @@ struct RunningProcessesView: View {
         }
 
         let lines = output?.split(omittingEmptySubsequences: true, whereSeparator: \.isNewline)
+        var isFirstLine = true
         for line in lines ?? [] {
+            // Skip CSV header line
+            if isFirstLine {
+                isFirstLine = false
+                continue
+            }
             let lineParts = line.split(separator: ",", omittingEmptySubsequences: true)
             if lineParts.count > 1 {
-                let pid = String(lineParts[1])
-                let procName = String(lineParts[0])
-                newProcessList.append(BottleProcess(pid: pid, procName: procName))
+                // Remove surrounding quotes from CSV fields
+                let procName = String(lineParts[0]).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                let pid = String(lineParts[1]).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                if !procName.isEmpty && !pid.isEmpty {
+                    newProcessList.append(BottleProcess(pid: pid, procName: procName))
+                }
             }
         }
         processes = newProcessList
